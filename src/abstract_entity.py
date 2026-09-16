@@ -4,31 +4,28 @@ from uuid import UUID, uuid4
 
 class identify(ABC):
     """Абстрактный базовый класс для идентифицируемых сущностей."""
-    __name = ""
 
     def __init__(self) -> None:
         """Инициализирует базовый экземпляр сущности."""
-        self.__id = uuid4
+        self.__name = ""
+        self.__id = uuid4()
     
     @property
-    @abstractmethod
     def id(self) -> UUID:
         """Возвращает уникальный идентификатор сущности."""
         return self.__id
 
     @property
-    @abstractmethod
     def name(self) -> str:
         """Возвращает наименование сущности."""
         return self.__name
 
     @name.setter
-    @abstractmethod
-    def name(self, value: str) -> None:
+    def name(self, new_name: str) -> None:
         """
         Устанавливает наименование сущности.
 
         :param value: Новое наименование сущности.
         """
-        if self.__name is not None and len(self.__name) != 0:
-            self.__name = value
+        if new_name is not None and len(new_name) > 0 and isinstance(new_name, str):
+          self.__name = new_name
