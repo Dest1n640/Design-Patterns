@@ -1,0 +1,112 @@
+{
+  "company": {
+    "name": "ООО Ромашка",
+    "restaurants_count": 10
+  },
+
+  "restaurants": [
+    {
+      "id": "R01",
+      "name": "",
+      "address": "",
+      "service_mode": "delivery_and_dine_in",
+      "working_hours": { "open": "10:00", "close": "22:00" },
+      "storage_id": "WH01"
+    }
+  ],
+
+  "production_workshop": {
+    "name": "Производственный цех",
+    "working_mode": "24/7",
+    "central_storage": {
+      "id": "WH00",
+      "categories": ["meat", "dairy"],
+      "refrigeration_required": true,
+      "daily_distribution_to_restaurants": true
+    }
+  },
+
+  "database": {
+    "engine": "sqlite",
+    "path": "./data/romashka.db",
+    "host": "",
+    "login": "",
+    "password": ""
+  },
+
+  "storage": [
+    {
+      "id": "WH00",
+      "type": "central",
+      "location_room": ""
+    },
+    {
+      "id": "WH01",
+      "type": "restaurant",
+      "location_room": "",
+      "restaurant_id": "R01"
+    }
+  ],
+
+  "inventory": {
+    "full_inventory_schedule": "monthly",
+    "partial_inventory_schedule": "multiple_per_month"
+  },
+
+  "production": {
+    "operations": [
+      "technological_card",
+      "semi_finished_preparation",
+      "dish_preparation",
+      "product_release",
+      "product_disposal"
+    ],
+    "write_off_modes": ["blocking", "balance"],
+    "technological_card_allows_composition": true
+  },
+
+  "courier_service": {
+    "delivery_zones": [
+      { "zone_id": "Z1", "name": "", "cost": 0 }
+    ],
+    "assignment_strategy": "nearest_available_delivery_restaurant",
+    "delivery_menu": {
+      "separate_from_dine_in_menu": true,
+      "packaging_included_per_dish": true
+    }
+  },
+
+  "finance": {
+    "payment_types": ["cash", "bank_transfer"],
+    "document_types": ["income", "write_off"],
+    "counterparty_groups": []
+  },
+
+  "staff": {
+    "categories": [
+      { "name": "production", "schedule_type": "shift", "max_shift_hours": 8 },
+      { "name": "service", "schedule_type": "fixed", "hours_per_day": 8 },
+      { "name": "management", "schedule_type": "fixed", "hours_per_day": 8 }
+    ],
+    "overtime_rate_multiplier": 2,
+    "track_responsible_employee": true
+  },
+
+  "operational_accounting": {
+    "order_types": [
+      "delivery_order",
+      "restaurant_replenishment_order",
+      "production_order"
+    ],
+    "deletion_guards": {
+      "nomenclature_locked_if_used_in_stock": true,
+      "employee_card_locked_if_used_in_stock_operational_or_financial_records": true
+    }
+  },
+
+  "api": {
+    "swagger_enabled": true,
+    "host": "0.0.0.0",
+    "port": 8000
+  }
+}
