@@ -14,7 +14,7 @@ class measurement_unit_model(named_entity):
         :base_unit: базовая единица измерения; None — единица сама себе база
         """
         super().__init__(name)
-        if not isinstance(coefficient, int | float) or coefficient < 0:
+        if not isinstance(coefficient, int | float) or coefficient <= 0:
           raise validation_exception("coefficient", "Коэффицент указан некорректно")
         self.__coefficient = coefficient
         if base_unit is None and coefficient != 1:
@@ -38,8 +38,9 @@ class measurement_unit_model(named_entity):
 
         :new_coefficient: новый коэффициент пересчёта
         """
-        if isinstance(new_coefficient, int | float) and new_coefficient > 0:
-            self.__coefficient = new_coefficient
+        if not isinstance(new_coefficient, int | float) or new_coefficient <= 0:
+            raise validation_exception("coefficient", "Коэффицент указан некорректно")
+        self.__coefficient = new_coefficient
 
     @base_unit.setter
     def base_unit(self, new_base_unit: Self | None):
