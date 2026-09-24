@@ -1,14 +1,14 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from uuid import UUID, uuid4
+from typing import Self
+from Src.Core.exception import arguments_exception
 
-
-class identify(ABC):
+class abstract_model(ABC):
     """Абстрактный базовый класс для идентифицируемых сущностей."""
 
-    def __init__(self) -> None:
+    def __init__(self, name: str | None = None) -> None:
         """Инициализирует базовый экземпляр сущности."""
-        self.__name = ""
-        self.__id = uuid4()
+        self.__id = str(uuid4())
     
     @property
     def id(self) -> UUID:
@@ -25,7 +25,16 @@ class identify(ABC):
         """
         Устанавливает наименование сущности.
 
-        :param value: Новое наименование сущности.
+        :new_name : Новое наименование сущности.
         """
-        if new_name is not None and len(new_name) > 0 and isinstance(new_name, str):
-          self.__name = new_name
+        if len(new_name) == 0 or new_name is None or not isinstance(new_name, str):
+            raise arguments_exception("Name", "New_name is incorrect")
+        self.__name = new_name
+
+    def __eq__(self, other: Self):
+        """
+        Магический метод сравнения
+
+        :other: параметор сравнения
+        """
+        return self.id == other.id
