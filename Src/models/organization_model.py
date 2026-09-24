@@ -11,6 +11,11 @@ class organization(named_entity):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, INN: str, BIC: str, curr_account: str, legal_form: str):
       """Констуктор с присваением именни ООО Ромашка"""
-      super().__init__("ООО Ромашка")
+      super().__init__("Ромашка")
+      self.INN = INN
+      self.BIC = BIC
+      self.curr_account = curr_account
+      self.legal_form = legal_form
+
