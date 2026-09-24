@@ -8,8 +8,8 @@ class named_entity(abstract_model):
   def __init__(self, name: str) -> None:
     """Конструктор с именем для сущности"""
     super().__init__()
-    if name is not None and isinstance(name, str) and len(name) > 0:
-      self.__name = name
+    self._validate_name(name)
+    self.__name = name
 
   @property
   def name(self) -> str:
@@ -23,6 +23,11 @@ class named_entity(abstract_model):
     
     :new_name: новое имя сущности
     """
-    if len(new_name) <= 0 or new_name is None or isinstance(new_name, str):
-      raise arguments_exception("Setter_error")
+    self._validate_name(new_name)
     self.name = new_name
+
+
+  def _validate_name(self, value: str) -> None:
+      """Базовая проверка имени. Подклассы могут расширять через super()."""
+      if value is None or not isinstance(value, str) or len(value) == 0:
+          raise arguments_exception("name", "Имя не должно быть пустым")
