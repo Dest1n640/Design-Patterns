@@ -1,7 +1,7 @@
 from Src.Core.named_entity import named_entity
 from typing import Self
 
-class measurement_unit(named_entity):
+class measurement_unit_model(named_entity):
 
     def __init__(self, name: str, coefficient: int | float, base_unit: Self | None = None):
         """
