@@ -1,5 +1,5 @@
 from Src.Core.abstract_entity import abstract_model
-from Src.Core.exception import arguments_exception
+from Src.Core.exception import validation_exception
 
 
 class named_entity(abstract_model):
@@ -24,10 +24,10 @@ class named_entity(abstract_model):
     :new_name: новое имя сущности
     """
     self._validate_name(new_name)
-    self.name = new_name
+    self.__name = new_name
 
 
   def _validate_name(self, value: str) -> None:
       """Базовая проверка имени. Подклассы могут расширять через super()."""
       if value is None or not isinstance(value, str) or len(value) == 0:
-          raise arguments_exception("name", "Имя не должно быть пустым")
+          raise validation_exception("name", "Имя не должно быть пустым")
