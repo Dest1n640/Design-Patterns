@@ -4,25 +4,18 @@ from Src.Core.exception import validation_exception
 
 class organization_model(named_entity):
     """Класс сущности - организация"""
-    _instance = None
-    _initialized = False
-
-    def __new__(cls, *args, **kwargs):
-        """Реализация singleton для класса"""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
     def __init__(self, INN: str, BIC: str, curr_account: str, legal_form: str):
       """Констуктор с присваением именни ООО Ромашка"""
-      if self._initialized:
-          raise validation_exception("organization", "Организация уже создана, повторное создание недопустимо")
       super().__init__("Ромашка")
+      self._validate_INN(INN)
       self.INN = INN
+      self._validate_BIC(BIC)
       self.BIC = BIC
+      self._validate_curr_account(curr_account)
       self.curr_account = curr_account
+      self._validate_legal_form(legal_form)
       self.legal_form = legal_form
-      self._initialized = True
 
     @property
     def INN(self) -> str:

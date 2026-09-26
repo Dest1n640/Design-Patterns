@@ -49,7 +49,7 @@ class measurement_unit_model(named_entity):
 
         :new_base_unit: новая базовая единица измерения; None — единица сама себе база
         """
-        if new_base_unit is None and self.__coefficient != 1:
+        if not isinstance(new_base_unit, measurement_unit_model) and new_base_unit is None and self.__coefficient != 1:
             raise validation_exception("base_unit", "Базовая единица измерения указана некорректно")
         self.__base_unit = new_base_unit
 
