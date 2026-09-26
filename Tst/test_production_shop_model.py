@@ -2,7 +2,7 @@
 from Src.models.production_shop_model import production_shop_model
 
 
-def test_ValidProductionShopCreated_Constructor_NameIsSet():
+def test_valid_production_shop_created_constructor_name_is_set():
     """Валидное создание производственного цеха сохраняет переданное имя (смоук-тест)."""
     shop = production_shop_model("Центральный цех")
     assert shop.name == "Центральный цех"

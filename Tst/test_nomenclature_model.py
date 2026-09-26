@@ -15,7 +15,7 @@ def _build_nomenclature(name="Мука", full_name="Мука пшеничная 
     return nomenclature_model(name, full_name, group, unit, position_type.RAW_MATERIAL)
 
 
-def test_ValidNomenclatureCreated_Constructor_AllFieldsAreSet():
+def test_valid_nomenclature_created_constructor_all_fields_are_set():
     """Валидное создание номенклатуры сохраняет все переданные поля."""
     nomenclature = _build_nomenclature()
     assert nomenclature.name == "Мука"
@@ -23,31 +23,31 @@ def test_ValidNomenclatureCreated_Constructor_AllFieldsAreSet():
     assert nomenclature.position_type == position_type.RAW_MATERIAL
 
 
-def test_ValidationException_Constructor_NameLongerThan50Raises():
+def test_validation_exception_constructor_name_longer_than_50_raises():
     """Имя длиннее 50 символов вызывает исключение валидации."""
     with pytest.raises(validation_exception):
         _build_nomenclature(name="Н" * 51)
 
 
-def test_ValidationException_Constructor_EmptyNameRaises():
+def test_validation_exception_constructor_empty_name_raises():
     """Пустое имя вызывает исключение валидации."""
     with pytest.raises(validation_exception):
         _build_nomenclature(name="")
 
 
-def test_ValidationException_Constructor_FullNameLongerThan255Raises():
+def test_validation_exception_constructor_full_name_longer_than_255_raises():
     """Полное наименование длиннее 255 символов вызывает исключение валидации."""
     with pytest.raises(validation_exception):
         _build_nomenclature(full_name="Н" * 256)
 
 
-def test_ValidationException_Constructor_EmptyFullNameRaises():
+def test_validation_exception_constructor_empty_full_name_raises():
     """Пустое полное наименование вызывает исключение валидации."""
     with pytest.raises(validation_exception):
         _build_nomenclature(full_name="")
 
 
-def test_FullNameIsUpdated_FullNameSetter_ValidValueAccepted():
+def test_full_name_is_updated_full_name_setter_valid_value_accepted():
     """Сеттер full_name принимает значение длиннее 50 символов."""
     nomenclature = _build_nomenclature()
     long_value = "Мука пшеничная высшего сорта особого урожая, произведённая по ГОСТ"
@@ -55,7 +55,7 @@ def test_FullNameIsUpdated_FullNameSetter_ValidValueAccepted():
     assert nomenclature.full_name == long_value
 
 
-def test_ValidationException_FullNameSetter_InvalidValueRaises():
+def test_validation_exception_full_name_setter_invalid_value_raises():
     """Сеттер full_name бросает исключение валидации на невалидном значении."""
     nomenclature = _build_nomenclature()
     with pytest.raises(validation_exception):
