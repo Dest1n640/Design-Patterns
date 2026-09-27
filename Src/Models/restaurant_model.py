@@ -1,5 +1,5 @@
-from Src.Core.named_entity import named_entity
+from Src.Core.named_model import NamedModel
 
-class restaurant_model(named_entity):
-  """Класс ресторана — точки сети"""
-  pass
+
+class RestaurantModel(NamedModel):
+    """Класс ресторана — точки сети."""

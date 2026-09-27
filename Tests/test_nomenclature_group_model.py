@@ -1,8 +1,9 @@
-"""Юнит-тесты для Src.Models.nomenclature_group_model.nomenclature_group_model."""
-from Src.Models.nomenclature_group_model import nomenclature_group_model
+"""Юнит-тесты для Src.Models.nomenclature_group_model.NomenclatureGroupModel."""
+
+from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 
 
-def test_valid_group_created_constructor_name_is_set():
+def test_nomenclature_group_model__constructor__name_is_set():
     """Валидное создание группы номенклатуры сохраняет переданное имя (смоук-тест)."""
-    group = nomenclature_group_model("Бакалея")
+    group = NomenclatureGroupModel("Бакалея")
     assert group.name == "Бакалея"

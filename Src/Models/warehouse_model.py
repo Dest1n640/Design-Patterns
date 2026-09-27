@@ -1,67 +1,58 @@
-from Src.Core.named_entity import named_entity
-from Src.Core.exception import validation_exception
-from Src.Models.premises_model import premises_model
-from Src.Models.restaurant_model import restaurant_model
-from Src.Models.production_shop_model import production_shop_model
+from Src.Core.exception import ValidationException
+from Src.Core.named_model import NamedModel
+from Src.Models.premises_model import PremisesModel
+from Src.Models.production_shop_model import ProductionShopModel
+from Src.Models.restaurant_model import RestaurantModel
 
-class warehouse_model(named_entity):
-    """Класс склада — места хранения остатков номенклатуры"""
 
-    def __init__(self, name: str, premises: premises_model, warehouse_owner: restaurant_model | production_shop_model):
-        """
-        Конструктор склада
+class WarehouseModel(NamedModel):
+    """Класс склада — места хранения остатков номенклатуры."""
 
-        :premises: помещение, в котором расположен склад
-        :warehouse_owner: владелец склада — ресторан или производственный цех
-        """
+    def __init__(
+        self,
+        name: str,
+        premises: PremisesModel,
+        warehouse_owner: RestaurantModel | ProductionShopModel,
+    ):
+        """Конструктор склада."""
         super().__init__(name)
         self.premises = premises
         self.warehouse_owner = warehouse_owner
 
     @property
     def premises(self):
-        """Возвращает помещение, в котором расположен склад"""
+        """Возвращает помещение, в котором расположен склад."""
         return self.__premises
 
     @property
     def warehouse_owner(self):
-        """Возвращает владельца склада"""
+        """Возвращает владельца склада."""
         return self.__warehouse_owner
 
     @premises.setter
-    def premises(self, new_premises: premises_model):
-        """
-        Устанавливает помещение, в котором расположен склад
-
-        :new_premises: новое помещение
-        """
+    def premises(self, new_premises: PremisesModel):
+        """Устанавливает помещение, в котором расположен склад."""
         self._validate_premises(new_premises)
         self.__premises = new_premises
 
     @warehouse_owner.setter
-    def warehouse_owner(self, new_warehouse_owner: restaurant_model | production_shop_model):
-        """
-        Устанавливает владельца склада
-
-        :new_warehouse_owner: новый владелец склада
-        """
+    def warehouse_owner(
+        self, new_warehouse_owner: RestaurantModel | ProductionShopModel
+    ):
+        """Устанавливает владельца склада."""
         self._validate_warehouse_owner(new_warehouse_owner)
         self.__warehouse_owner = new_warehouse_owner
 
-    def _validate_premises(self, value: premises_model) -> None:
-        """
-        Проверка помещения склада: должно быть экземпляром premises_model
+    def _validate_premises(self, value: PremisesModel) -> None:
+        """Проверка помещения склада: должно быть экземпляром PremisesModel."""
+        if not isinstance(value, PremisesModel):
+            raise ValidationException("premises", "Помещение указано некорректно")
 
-        :value: проверяемое помещение
-        """
-        if not isinstance(value, premises_model):
-            raise validation_exception("premises", "Помещение указано некорректно")
-
-    def _validate_warehouse_owner(self, value: restaurant_model | production_shop_model) -> None:
-        """
-        Проверка владельца склада: должен быть рестораном или производственным цехом
-
-        :value: проверяемый владелец склада
-        """
-        if not isinstance(value, (restaurant_model, production_shop_model)):
-            raise validation_exception("warehouse_owner", "Владелец склада указан некорректно")
+    def _validate_warehouse_owner(
+        self, value: RestaurantModel | ProductionShopModel
+    ) -> None:
+        """Проверка владельца склада: должен быть рестораном или цехом."""
+        if not isinstance(value, (RestaurantModel, ProductionShopModel)):
+            raise ValidationException(
+                "warehouse_owner", "Владелец склада указан некорректно"
+            )

@@ -1,23 +1,21 @@
 from abc import ABC
-from uuid import UUID, uuid4
 from typing import Self
+from uuid import UUID, uuid4
 
-class abstract_model(ABC):
+
+# Намеренно без абстрактных методов: класс — только маркер "не создавать напрямую".
+class AbstractModel(ABC):  # noqa: B024
     """Абстрактный базовый класс для идентифицируемых сущностей."""
 
     def __init__(self) -> None:
         """Инициализирует базовый экземпляр сущности."""
         self.__id = str(uuid4())
-    
+
     @property
     def id(self) -> UUID:
         """Возвращает уникальный идентификатор сущности."""
         return self.__id
 
     def __eq__(self, other: Self):
-        """
-        Магический метод сравнения
-
-        :other: параметор сравнения
-        """
+        """Сравнивает сущности по id."""
         return self.id == other.id

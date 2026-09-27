@@ -1,5 +1,5 @@
-from Src.Core.named_entity import named_entity
+from Src.Core.named_model import NamedModel
 
-class nomenclature_group_model(named_entity):
-  """Класс группы номенклатуры — классификатора номенклатуры"""
-  pass
+
+class NomenclatureGroupModel(NamedModel):
+    """Класс группы номенклатуры — классификатора номенклатуры."""

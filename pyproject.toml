@@ -21,3 +21,7 @@ select = [
     "UP", # pyupgrade
     "B",  # flake8-bugbear
 ]
+ignore = [
+    "N818", # исключения намеренно называются с суффиксом Exception, а не Error
+    "N999", # каталоги (Src/Core/Models/Tests) намеренно в CamelCase, см. CodeCases.md
+]

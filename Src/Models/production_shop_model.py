@@ -1,5 +1,5 @@
-from Src.Core.named_entity import named_entity
+from Src.Core.named_model import NamedModel
 
-class production_shop_model(named_entity):
-    """Класс производственного цеха"""
-    pass
+
+class ProductionShopModel(NamedModel):
+    """Класс производственного цеха."""

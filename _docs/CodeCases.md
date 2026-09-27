@@ -25,12 +25,14 @@ class OrganizationModel(NamedModel):
     """Класс сущности - организация."""
 
     @property
-    def INN(self) -> str:
+    def inn(self) -> str:
         """Возвращает ИНН организации."""
 
-    def _validate_INN(self, value: str) -> None:
+    def _validate_inn(self, value: str) -> None:
         """Проверяет, что ИНН — строка ровно из 10 цифр."""
 ```
+
+Даже устоявшиеся акронимы (`ИНН`, `БИК`) в именах свойств/методов/параметров пишем строчными буквами (`inn`, `bic`) — так требует `PEP 8` и правило `N` (pep8-naming); заглавные буквы в тексте документации/сообщений об ошибках это не затрагивает.
 
 ### Статический анализ
 
@@ -42,6 +44,12 @@ class OrganizationModel(NamedModel):
   uv run ruff format --check .
   ```
 - Оба шага прогоняются в GitHub Actions (`.github/workflows/ci.yml`) на каждый push и pull request в `main`; ветка `main` защищена правилом, требующим прохождения этой проверки перед мерджем
+- Для локальной разработки (необязательно, но рекомендуется) можно сразу поправить то, что чинится автоматически, перед тем как гонять обязательную проверку выше:
+  ```sh
+  uv run ruff check --fix .
+  uv run ruff format .
+  ```
+  `--fix`/`format` без `--check` **меняют файлы на диске** (например, порядок импортов) — это удобно локально, но не заменяет обязательную проверку выше и не используется в CI, которая должна только проверять, а не молча менять код
 
 ### Тестирование
 
@@ -54,6 +62,7 @@ class OrganizationModel(NamedModel):
   ```python
   def test_organization_model__invalid_inn__raises_validation_exception():
       """Создание организации с невалидным ИНН бросает ValidationException."""
+
 
   def test_organization_model__valid_fields__all_fields_are_set():
       """Валидное создание организации сохраняет все переданные поля."""

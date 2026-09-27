@@ -1,40 +1,41 @@
-"""Юнит-тесты для Src.Models.warehouse_model.warehouse_model."""
+"""Юнит-тесты для Src.Models.warehouse_model.WarehouseModel."""
+
 import pytest
 
-from Src.Models.warehouse_model import warehouse_model
-from Src.Models.premises_model import premises_model
-from Src.Models.restaurant_model import restaurant_model
-from Src.Models.production_shop_model import production_shop_model
-from Src.Core.exception import validation_exception
+from Src.Core.exception import ValidationException
+from Src.Models.premises_model import PremisesModel
+from Src.Models.production_shop_model import ProductionShopModel
+from Src.Models.restaurant_model import RestaurantModel
+from Src.Models.warehouse_model import WarehouseModel
 
 
-def test_valid_warehouse_created_constructor_restaurant_owner_accepted():
+def test_warehouse_model__constructor__restaurant_owner_accepted():
     """Валидное создание склада с владельцем-рестораном сохраняет все поля."""
-    premises = premises_model("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
-    owner = restaurant_model("Ромашка на Тверской")
-    warehouse = warehouse_model("Основной склад", premises, owner)
+    premises = PremisesModel("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
+    owner = RestaurantModel("Ромашка на Тверской")
+    warehouse = WarehouseModel("Основной склад", premises, owner)
     assert warehouse.premises is premises
     assert warehouse.warehouse_owner is owner
 
 
-def test_valid_warehouse_created_constructor_production_shop_owner_accepted():
-    """Валидное создание склада с владельцем-производственным цехом сохраняет все поля."""
-    premises = premises_model("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
-    owner = production_shop_model("Центральный цех")
-    warehouse = warehouse_model("Цеховой склад", premises, owner)
+def test_warehouse_model__constructor__production_shop_owner_accepted():
+    """Валидное создание склада с владельцем-цехом сохраняет все поля."""
+    premises = PremisesModel("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
+    owner = ProductionShopModel("Центральный цех")
+    warehouse = WarehouseModel("Цеховой склад", premises, owner)
     assert warehouse.premises is premises
     assert warehouse.warehouse_owner is owner
 
 
-def test_validation_exception_constructor_invalid_premises_raises():
-    """Помещение, не являющееся premises_model, вызывает исключение валидации."""
-    owner = restaurant_model("Ромашка на Тверской")
-    with pytest.raises(validation_exception):
-        warehouse_model("Основной склад", "не помещение", owner)
+def test_warehouse_model__constructor__invalid_premises_raises():
+    """Помещение, не являющееся PremisesModel, вызывает исключение валидации."""
+    owner = RestaurantModel("Ромашка на Тверской")
+    with pytest.raises(ValidationException):
+        WarehouseModel("Основной склад", "не помещение", owner)
 
 
-def test_validation_exception_constructor_invalid_owner_raises():
+def test_warehouse_model__constructor__invalid_owner_raises():
     """Владелец, не являющийся рестораном или цехом, вызывает исключение валидации."""
-    premises = premises_model("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
-    with pytest.raises(validation_exception):
-        warehouse_model("Основной склад", premises, "не владелец")
+    premises = PremisesModel("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
+    with pytest.raises(ValidationException):
+        WarehouseModel("Основной склад", premises, "не владелец")
