@@ -1,10 +1,10 @@
-"""Юнит-тесты для Src.models.warehouse_model.warehouse_model."""
+"""Юнит-тесты для Src.Models.warehouse_model.warehouse_model."""
 import pytest
 
-from Src.models.warehouse_model import warehouse_model
-from Src.models.premises_model import premises_model
-from Src.models.restaurant_model import restaurant_model
-from Src.models.production_shop_model import production_shop_model
+from Src.Models.warehouse_model import warehouse_model
+from Src.Models.premises_model import premises_model
+from Src.Models.restaurant_model import restaurant_model
+from Src.Models.production_shop_model import production_shop_model
 from Src.Core.exception import validation_exception
 
 

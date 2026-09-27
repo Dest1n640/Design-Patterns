@@ -1,7 +1,7 @@
-"""Юнит-тесты для Src.models.measurement_unit_model.measurement_unit_model."""
+"""Юнит-тесты для Src.Models.measurement_unit_model.measurement_unit_model."""
 import pytest
 
-from Src.models.measurement_unit_model import measurement_unit_model
+from Src.Models.measurement_unit_model import measurement_unit_model
 from Src.Core.exception import validation_exception
 
 

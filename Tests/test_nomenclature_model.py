@@ -1,9 +1,9 @@
-"""Юнит-тесты для Src.models.nomenclature_model.nomenclature_model."""
+"""Юнит-тесты для Src.Models.nomenclature_model.nomenclature_model."""
 import pytest
 
-from Src.models.nomenclature_model import nomenclature_model
-from Src.models.nomenclature_group_model import nomenclature_group_model
-from Src.models.measurement_unit_model import measurement_unit_model
+from Src.Models.nomenclature_model import nomenclature_model
+from Src.Models.nomenclature_group_model import nomenclature_group_model
+from Src.Models.measurement_unit_model import measurement_unit_model
 from Src.Core.position_type import position_type
 from Src.Core.exception import validation_exception
 

@@ -1,7 +1,7 @@
-"""Юнит-тесты для Src.models.organization_model.organization_model."""
+"""Юнит-тесты для Src.Models.organization_model.organization_model."""
 import pytest
 
-from Src.models.organization_model import organization_model
+from Src.Models.organization_model import organization_model
 from Src.Core.exception import validation_exception
 
 

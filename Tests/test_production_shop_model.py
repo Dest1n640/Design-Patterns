@@ -1,5 +1,5 @@
-"""Юнит-тесты для Src.models.production_shop_model.production_shop_model."""
-from Src.models.production_shop_model import production_shop_model
+"""Юнит-тесты для Src.Models.production_shop_model.production_shop_model."""
+from Src.Models.production_shop_model import production_shop_model
 
 
 def test_valid_production_shop_created_constructor_name_is_set():

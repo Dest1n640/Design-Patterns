@@ -1,8 +1,8 @@
 from Src.Core.named_entity import named_entity
 from Src.Core.exception import validation_exception
-from Src.models.premises_model import premises_model
-from Src.models.restaurant_model import restaurant_model
-from Src.models.production_shop_model import production_shop_model
+from Src.Models.premises_model import premises_model
+from Src.Models.restaurant_model import restaurant_model
+from Src.Models.production_shop_model import production_shop_model
 
 class warehouse_model(named_entity):
     """Класс склада — места хранения остатков номенклатуры"""

@@ -1,7 +1,7 @@
-"""Юнит-тесты для Src.models.premises_model.premises_model."""
+"""Юнит-тесты для Src.Models.premises_model.premises_model."""
 import pytest
 
-from Src.models.premises_model import premises_model
+from Src.Models.premises_model import premises_model
 from Src.Core.exception import validation_exception
 
 
