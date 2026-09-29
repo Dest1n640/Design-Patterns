@@ -6,4 +6,22 @@ readme = "readme.md"
 requires-python = ">=3.12"
 dependencies = [
     "pytest>=9.1.1",
+    "ruff>=0.16.9",
+]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "N",  # pep8-naming
+    "I",  # isort
+    "UP", # pyupgrade
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "N818", # исключения намеренно называются с суффиксом Exception, а не Error
+    "N999", # каталоги (Src/Core/Models/Tests) намеренно в CamelCase, см. CodeCases.md
 ]
