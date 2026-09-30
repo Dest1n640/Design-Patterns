@@ -1,5 +1,5 @@
-from Src.Core.exception import ValidationException
 from Src.Core.named_model import NamedModel
+from Src.Core.validation import Validation
 
 
 class PremisesModel(NamedModel):
@@ -24,23 +24,9 @@ class PremisesModel(NamedModel):
     @address.setter
     def address(self, new_address: str):
         """Устанавливает адрес помещения."""
-        self._validate_address(new_address)
-        self.__address = new_address
+        self.__address = Validation.validate_string(new_address, "address")
 
     @square.setter
     def square(self, new_square: int | float):
         """Устанавливает площадь помещения."""
-        self._validate_square(new_square)
-        self.__square = new_square
-
-    def _validate_address(self, value: str) -> None:
-        """Проверка адреса помещения: непустая строка."""
-        if value is None or not isinstance(value, str) or len(value) == 0:
-            raise ValidationException("address", "Адрес не должен быть пустым")
-
-    def _validate_square(self, value: int | float) -> None:
-        """Проверка площади помещения: положительное число."""
-        if not isinstance(value, int | float) or value <= 0:
-            raise ValidationException(
-                "square", "Площадь должна быть положительным числом"
-            )
+        self.__square = Validation.validate_positive_number(new_square, "square")

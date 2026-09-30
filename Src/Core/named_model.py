@@ -1,5 +1,5 @@
 from Src.Core.abstract_model import AbstractModel
-from Src.Core.exception import ValidationException
+from Src.Core.validation import Validation
 
 
 class NamedModel(AbstractModel):
@@ -8,8 +8,7 @@ class NamedModel(AbstractModel):
     def __init__(self, name: str) -> None:
         """Конструктор с именем для сущности."""
         super().__init__()
-        self._validate_name(name)
-        self.__name = name
+        self.__name = self._validate_name(name)
 
     @property
     def name(self) -> str:
@@ -19,10 +18,8 @@ class NamedModel(AbstractModel):
     @name.setter
     def name(self, new_name: str):
         """Устанавливаем имя сущности."""
-        self._validate_name(new_name)
-        self.__name = new_name
+        self.__name = self._validate_name(new_name)
 
-    def _validate_name(self, value: str) -> None:
-        """Базовая проверка имени. Подклассы могут расширять через super()."""
-        if value is None or not isinstance(value, str) or len(value) == 0:
-            raise ValidationException("name", "Имя не должно быть пустым")
+    def _validate_name(self, value: str) -> str:
+        """Проверяет имя и возвращает его без пробелов по краям."""
+        return Validation.validate_string(value, "name")

@@ -1,6 +1,6 @@
-from Src.Core.exception import ValidationException
 from Src.Core.named_model import NamedModel
 from Src.Core.position_type import PositionType
+from Src.Core.validation import Validation
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 
@@ -21,14 +21,10 @@ class NomenclatureModel(NamedModel):
     ):
         """Конструктор номенклатуры."""
         super().__init__(name)
-        self._validate_full_name(full_name)
-        self.__full_name = full_name
-        self._validate_group(group)
-        self.__group = group
-        self._validate_measurement_unit(measurement_unit)
-        self.__measurement_unit = measurement_unit
-        self._validate_position_type(position_type)
-        self.__position_type = position_type
+        self.full_name = full_name
+        self.group = group
+        self.measurement_unit = measurement_unit
+        self.position_type = position_type
 
     @property
     def full_name(self):
@@ -53,62 +49,42 @@ class NomenclatureModel(NamedModel):
     @full_name.setter
     def full_name(self, new_full_name: str):
         """Устанавливает полное наименование номенклатурной позиции."""
-        self._validate_full_name(new_full_name)
-        self.__full_name = new_full_name
+        self.__full_name = Validation.validate_string(
+            new_full_name, "full_name", max_length=self._FULL_NAME_MAX_LENGTH
+        )
 
     @group.setter
     def group(self, new_group: NomenclatureGroupModel):
         """Устанавливает группу номенклатуры."""
-        self._validate_group(new_group)
-        self.__group = new_group
+        self.__group = Validation.validate_instance(
+            new_group,
+            NomenclatureGroupModel,
+            "group",
+            "Группа номенклатуры указана некорректно",
+        )
 
     @measurement_unit.setter
     def measurement_unit(self, new_measurement_unit: MeasurementUnitModel):
         """Устанавливает единицу измерения позиции."""
-        self._validate_measurement_unit(new_measurement_unit)
-        self.__measurement_unit = new_measurement_unit
+        self.__measurement_unit = Validation.validate_instance(
+            new_measurement_unit,
+            MeasurementUnitModel,
+            "measurement_unit",
+            "Единица измерения указана некорректно",
+        )
 
     @position_type.setter
     def position_type(self, new_position_type: PositionType):
         """Устанавливает тип позиции."""
-        self._validate_position_type(new_position_type)
-        self.__position_type = new_position_type
+        self.__position_type = Validation.validate_instance(
+            new_position_type,
+            PositionType,
+            "position_type",
+            "Тип позиции указан некорректно",
+        )
 
-    def _validate_name(self, value: str) -> None:
-        """Проверка обычного наименования: базовая проверка + максимум 50 символов."""
-        super()._validate_name(value)
-        if len(value) > self._NAME_MAX_LENGTH:
-            raise ValidationException(
-                "name", f"Имя длиннее {self._NAME_MAX_LENGTH} символов"
-            )
-
-    def _validate_full_name(self, value: str) -> None:
-        """Проверка полного наименования: непустая строка, максимум 255 символов."""
-        if value is None or not isinstance(value, str) or len(value) == 0:
-            raise ValidationException(
-                "full_name", "Полное наименование не должно быть пустым"
-            )
-        if len(value) > self._FULL_NAME_MAX_LENGTH:
-            raise ValidationException(
-                "full_name",
-                f"Полное наименование длиннее {self._FULL_NAME_MAX_LENGTH} символов",
-            )
-
-    def _validate_group(self, value: NomenclatureGroupModel) -> None:
-        """Проверка группы: должна быть экземпляром NomenclatureGroupModel."""
-        if not isinstance(value, NomenclatureGroupModel):
-            raise ValidationException(
-                "group", "Группа номенклатуры указана некорректно"
-            )
-
-    def _validate_measurement_unit(self, value: MeasurementUnitModel) -> None:
-        """Проверка единицы измерения: должна быть экземпляром MeasurementUnitModel."""
-        if not isinstance(value, MeasurementUnitModel):
-            raise ValidationException(
-                "measurement_unit", "Единица измерения указана некорректно"
-            )
-
-    def _validate_position_type(self, value: PositionType) -> None:
-        """Проверка типа позиции: должен быть значением перечисления PositionType."""
-        if not isinstance(value, PositionType):
-            raise ValidationException("position_type", "Тип позиции указан некорректно")
+    def _validate_name(self, value: str) -> str:
+        """Проверяет наименование: непустая строка, максимум 50 символов."""
+        return Validation.validate_string(
+            value, "name", max_length=self._NAME_MAX_LENGTH
+        )
