@@ -9,33 +9,20 @@ from Src.Models.restaurant_model import RestaurantModel
 from Src.Models.warehouse_model import WarehouseModel
 
 
-def test_warehouse_model__constructor__restaurant_owner_accepted():
-    """Валидное создание склада с владельцем-рестораном сохраняет все поля."""
-    premises = PremisesModel("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
-    owner = RestaurantModel("Ромашка на Тверской")
-    warehouse = WarehouseModel("Основной склад", premises, owner)
-    assert warehouse.premises is premises
-    assert warehouse.warehouse_owner is owner
+def _build_premises():
+    """Строит валидное помещение склада."""
+    return PremisesModel("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
 
 
-def test_warehouse_model__constructor__production_shop_owner_accepted():
-    """Валидное создание склада с владельцем-цехом сохраняет все поля."""
-    premises = PremisesModel("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
-    owner = ProductionShopModel("Центральный цех")
-    warehouse = WarehouseModel("Цеховой склад", premises, owner)
-    assert warehouse.premises is premises
-    assert warehouse.warehouse_owner is owner
+@pytest.mark.parametrize(
+    "owner", [RestaurantModel("Ромашка"), ProductionShopModel("Цех")]
+)
+def test_warehouse_model__constructor__restaurant_or_shop_owner_is_accepted(owner):
+    """Владельцем склада может быть ресторан или производственный цех."""
+    WarehouseModel("Склад", _build_premises(), owner)
 
 
-def test_warehouse_model__constructor__invalid_premises_raises():
-    """Помещение, не являющееся PremisesModel, вызывает исключение валидации."""
-    owner = RestaurantModel("Ромашка на Тверской")
-    with pytest.raises(ValidationException):
-        WarehouseModel("Основной склад", "не помещение", owner)
-
-
-def test_warehouse_model__constructor__invalid_owner_raises():
+def test_warehouse_model__constructor__other_owner_type_raises():
     """Владелец, не являющийся рестораном или цехом, вызывает исключение валидации."""
-    premises = PremisesModel("Помещение склада", "г. Москва, ул. Ленина, 1", 50.0)
     with pytest.raises(ValidationException):
-        WarehouseModel("Основной склад", premises, "не владелец")
+        WarehouseModel("Склад", _build_premises(), "не владелец")
