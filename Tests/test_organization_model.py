@@ -7,13 +7,26 @@ from Src.Models.organization_model import OrganizationModel
 
 
 def _build_organization(
+    name="Ромашка",
     inn="1234567890",
     bic="123456789",
     curr_account="12345678901234567890",
     legal_form="ООО",
 ):
     """Строит организацию с валидными реквизитами, переопределяя переданные."""
-    return OrganizationModel(inn, bic, curr_account, legal_form)
+    return OrganizationModel(name, inn, bic, curr_account, legal_form)
+
+
+def test_organization_model__constructor__name_is_taken_from_argument():
+    """Имя организации берётся из аргумента конструктора, а не зашито в класс."""
+    assert _build_organization(name="Лютик").name == "Лютик"
+
+
+@pytest.mark.parametrize("name", ["", "   ", None, 123])
+def test_organization_model__constructor__invalid_name_raises(name):
+    """Пустое или не строковое имя организации вызывает исключение валидации."""
+    with pytest.raises(ValidationException):
+        _build_organization(name=name)
 
 
 @pytest.mark.parametrize(
