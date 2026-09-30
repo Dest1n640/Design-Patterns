@@ -1,44 +1,46 @@
 from Src.Core.abstract_model import AbstractModel
+from Src.Core.validation import Validation
 from Src.Models.organization_model import OrganizationModel
 
+
 class SettingModel(AbstractModel):
-  """Модель настроект"""
-  __organization: OrganizationModel = None
-  __boss_name: str = ""
-  __account_name: str = ""
+    """Класс модели настроек приложения."""
 
-  @property
-  def organization(self) -> OrganizationModel:
-    self._validation_organization()
-    return self.__company
+    def __init__(self) -> None:
+        """Конструктор пустой модели: значения появятся после загрузки настроек."""
+        super().__init__()
+        self.__organization: OrganizationModel | None = None
+        self.__boss_name = ""
+        self.__account_name = ""
 
-  @organization.setter
-  def organization(self, value: OrganizationModel) -> None:
-    self._validation_organization()
+    @property
+    def organization(self) -> OrganizationModel | None:
+        """Возвращает организацию; None, пока настройки не загружены."""
+        return self.__organization
 
-  @property
-  def boss_name(self) -> str:
-    return self.boss_name
+    @property
+    def boss_name(self) -> str:
+        """Возвращает ФИО руководителя организации."""
+        return self.__boss_name
 
-  @boss_name.setter
-  def boss_name(self, value: str) -> None:
-    self._validation_boss_name()
-    self.boss_name = value.strip()
+    @property
+    def account_name(self) -> str:
+        """Возвращает наименование счёта организации."""
+        return self.__account_name
 
-  @property
-  def account_name(self) -> str:
-    return self.account_name
+    @organization.setter
+    def organization(self, value: OrganizationModel) -> None:
+        """Устанавливает организацию."""
+        self.__organization = Validation.validate_instance(
+            value, OrganizationModel, "organization", "Организация указана некорректно"
+        )
 
-  @account_name.setter
-  def account_name(self, value: str) -> None:
-    self._validation_account_name()
-    self.account_name = value.strip()
-    
-  def _validation_organization(self):
-    pass
+    @boss_name.setter
+    def boss_name(self, value: str) -> None:
+        """Устанавливает ФИО руководителя организации."""
+        self.__boss_name = Validation.validate_string(value, "boss_name")
 
-  def _validation_boss_name(self):
-    pass
-
-  def _validation_account_name(self):
-    pass
+    @account_name.setter
+    def account_name(self, value: str) -> None:
+        """Устанавливает наименование счёта организации."""
+        self.__account_name = Validation.validate_string(value, "account_name")
