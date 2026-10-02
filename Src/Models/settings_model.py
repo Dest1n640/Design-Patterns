@@ -3,7 +3,7 @@ from Src.Core.validation import Validation
 from Src.Models.organization_model import OrganizationModel
 
 
-class SettingModel(AbstractModel):
+class SettingsModel(AbstractModel):
     """Класс модели настроек приложения."""
 
     def __init__(self) -> None:
@@ -11,7 +11,8 @@ class SettingModel(AbstractModel):
         super().__init__()
         self.__organization: OrganizationModel | None = None
         self.__boss_name = ""
-        self.__account_name = ""
+        self.__accountant_name = ""
+        self.__first_start = False
 
     @property
     def organization(self) -> OrganizationModel | None:
@@ -24,9 +25,14 @@ class SettingModel(AbstractModel):
         return self.__boss_name
 
     @property
-    def account_name(self) -> str:
-        """Возвращает наименование счёта организации."""
-        return self.__account_name
+    def accountant_name(self) -> str:
+        """Возвращает ФИО главного бухгалтера организации."""
+        return self.__accountant_name
+
+    @property
+    def first_start(self) -> bool:
+        """Возвращает признак первого запуска приложения."""
+        return self.__first_start
 
     @organization.setter
     def organization(self, value: OrganizationModel) -> None:
@@ -40,7 +46,14 @@ class SettingModel(AbstractModel):
         """Устанавливает ФИО руководителя организации."""
         self.__boss_name = Validation.validate_string(value, "boss_name")
 
-    @account_name.setter
-    def account_name(self, value: str) -> None:
-        """Устанавливает наименование счёта организации."""
-        self.__account_name = Validation.validate_string(value, "account_name")
+    @accountant_name.setter
+    def accountant_name(self, value: str) -> None:
+        """Устанавливает ФИО главного бухгалтера организации."""
+        self.__accountant_name = Validation.validate_string(value, "accountant_name")
+
+    @first_start.setter
+    def first_start(self, value: bool) -> None:
+        """Устанавливает признак первого запуска приложения."""
+        self.__first_start = Validation.validate_instance(
+            value, bool, "first_start", "Признак первого запуска должен быть bool"
+        )

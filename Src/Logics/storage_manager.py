@@ -1,7 +1,6 @@
 from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
-from Src.Models.storage_model import StorageModel
 from Src.Core.validation import Validation
 
 
@@ -34,4 +33,4 @@ class StorageManager(AbstractManager):
             self._data, dict, "storage", "Настройки должны быть json-объектом"
         )
 
-        
+               
