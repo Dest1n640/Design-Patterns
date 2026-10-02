@@ -1,4 +1,5 @@
 {
+  "first_start": true,
   "company": {
     "name": "Ромашка",
     "legal_form": "ООО",
@@ -6,7 +7,7 @@
     "bic": "044525225",
     "curr_account": "40702810000000000001",
     "boss_name": "Иванов Иван Иванович",
-    "account_name": "Основной расчётный счёт",
+    "accountant_name": "Петрова Мария Сергеевна",
     "restaurants_count": 10
   },
   "restaurants": [
@@ -142,6 +143,114 @@
     "login": null,
     "password": null
   },
+  "measurement_units": [
+    {
+      "name": "грамм",
+      "coefficient": 1,
+      "base_unit": null
+    },
+    {
+      "name": "килограмм",
+      "coefficient": 1000,
+      "base_unit": "грамм"
+    },
+    {
+      "name": "миллилитр",
+      "coefficient": 1,
+      "base_unit": null
+    },
+    {
+      "name": "литр",
+      "coefficient": 1000,
+      "base_unit": "миллилитр"
+    },
+    {
+      "name": "штука",
+      "coefficient": 1,
+      "base_unit": null
+    }
+  ],
+  "nomenclature_groups": [
+    {
+      "name": "Мясо"
+    },
+    {
+      "name": "Молочные продукты"
+    },
+    {
+      "name": "Бакалея"
+    },
+    {
+      "name": "Овощи"
+    },
+    {
+      "name": "Полуфабрикаты"
+    },
+    {
+      "name": "Блюда"
+    },
+    {
+      "name": "Упаковка"
+    }
+  ],
+  "nomenclature": [
+    {
+      "name": "Говядина",
+      "full_name": "Говядина охлаждённая высшего сорта",
+      "group": "Мясо",
+      "measurement_unit": "килограмм",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Молоко",
+      "full_name": "Молоко пастеризованное 3,2%",
+      "group": "Молочные продукты",
+      "measurement_unit": "литр",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Мука пшеничная",
+      "full_name": "Мука пшеничная высшего сорта",
+      "group": "Бакалея",
+      "measurement_unit": "килограмм",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Томаты",
+      "full_name": "Томаты свежие",
+      "group": "Овощи",
+      "measurement_unit": "килограмм",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Тесто для пиццы",
+      "full_name": "Тесто дрожжевое для пиццы",
+      "group": "Полуфабрикаты",
+      "measurement_unit": "килограмм",
+      "position_type": "semi_finished"
+    },
+    {
+      "name": "Пицца Маргарита",
+      "full_name": "Пицца Маргарита 30 см",
+      "group": "Блюда",
+      "measurement_unit": "штука",
+      "position_type": "dish"
+    },
+    {
+      "name": "Бургер",
+      "full_name": "Бургер с говяжьей котлетой",
+      "group": "Блюда",
+      "measurement_unit": "штука",
+      "position_type": "dish"
+    },
+    {
+      "name": "Коробка для пиццы",
+      "full_name": "Коробка для пиццы 30 см",
+      "group": "Упаковка",
+      "measurement_unit": "штука",
+      "position_type": "goods"
+    }
+  ],
   "storage": [
     {
       "id": "WH00",
