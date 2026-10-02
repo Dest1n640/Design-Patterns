@@ -1,8 +1,14 @@
+import json
 from abc import ABC, abstractmethod
+
+from Src.Core.exception import ApplicationException
+from Src.Core.validation import Validation
 
 
 class AbstractManager(ABC):
     """Абстрактный базовый класс менеджеров: загрузка данных и их преобразование."""
+
+    _DEFAULT_FILE_NAME: str = ""
 
     def __init__(self) -> None:
         """Инициализирует пустое состояние менеджера."""
@@ -10,9 +16,20 @@ class AbstractManager(ABC):
         self._is_loaded: bool = False
         self._data: object = None
 
-    @abstractmethod
     def load(self, file_name: str = "") -> None:
-        """Загружает данные и запускает их обработку через convert."""
+        """Читает json-файл (по умолчанию _DEFAULT_FILE_NAME) и запускает convert."""
+        self._is_loaded = False
+        self._file_name = Validation.validate_string(
+            file_name if file_name.strip() else self._DEFAULT_FILE_NAME, "file_name"
+        )
+        try:
+            with open(self._file_name, encoding="utf-8") as file:
+                self._data = json.load(file)
+        except (OSError, ValueError) as ex:
+            raise ApplicationException(
+                f"Не удалось прочитать файл '{self._file_name}'"
+            ) from ex
+        self._is_loaded = self.convert()
 
     @abstractmethod
     def convert(self) -> bool:

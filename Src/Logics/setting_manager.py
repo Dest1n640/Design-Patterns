@@ -1,8 +1,6 @@
-import json
 from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
-from Src.Core.exception import ApplicationException
 from Src.Core.validation import Validation
 from Src.Models.organization_model import OrganizationModel
 from Src.Models.settings_model import SettingModel
@@ -31,21 +29,6 @@ class SettingsManager(AbstractManager):
     def settings(self) -> SettingModel:
         """Возвращает модель настроек."""
         return self._setting
-
-    def load(self, file_name: str = "") -> None:
-        """Читает json-файл настроек (по умолчанию settings.json) и преобразует его."""
-        self._is_loaded = False
-        self._file_name = Validation.validate_string(
-            file_name if file_name.strip() else self._DEFAULT_FILE_NAME, "file_name"
-        )
-        try:
-            with open(self._file_name, encoding="utf-8") as file:
-                self._data = json.load(file)
-        except (OSError, ValueError) as ex:
-            raise ApplicationException(
-                f"Не удалось прочитать файл настроек '{self._file_name}'"
-            ) from ex
-        self._is_loaded = self.convert()
 
     def convert(self) -> bool:
         """Собирает модель настроек из раздела company загруженных данных."""
