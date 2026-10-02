@@ -19,8 +19,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH01"
+      }
     },
     {
       "id": "R02",
@@ -30,8 +29,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH02"
+      }
     },
     {
       "id": "R03",
@@ -41,8 +39,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH03"
+      }
     },
     {
       "id": "R04",
@@ -52,8 +49,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH04"
+      }
     },
     {
       "id": "R05",
@@ -63,8 +59,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH05"
+      }
     },
     {
       "id": "R06",
@@ -74,8 +69,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH06"
+      }
     },
     {
       "id": "R07",
@@ -85,8 +79,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH07"
+      }
     },
     {
       "id": "R08",
@@ -96,8 +89,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH08"
+      }
     },
     {
       "id": "R09",
@@ -107,8 +99,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH09"
+      }
     },
     {
       "id": "R10",
@@ -118,8 +109,7 @@
       "working_hours": {
         "open": "10:00",
         "close": "22:00"
-      },
-      "storage_id": "WH10"
+      }
     }
   ],
   "production_workshop": {
@@ -223,6 +213,41 @@
       "position_type": "raw_material"
     },
     {
+      "name": "Дрожжи сухие",
+      "full_name": "Дрожжи хлебопекарные сухие",
+      "group": "Бакалея",
+      "measurement_unit": "грамм",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Соль",
+      "full_name": "Соль поваренная пищевая",
+      "group": "Бакалея",
+      "measurement_unit": "грамм",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Масло оливковое",
+      "full_name": "Масло оливковое Extra Virgin",
+      "group": "Бакалея",
+      "measurement_unit": "миллилитр",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Сыр Моцарелла",
+      "full_name": "Сыр Моцарелла для пиццы 45%",
+      "group": "Молочные продукты",
+      "measurement_unit": "килограмм",
+      "position_type": "raw_material"
+    },
+    {
+      "name": "Базилик",
+      "full_name": "Базилик зелёный свежий",
+      "group": "Овощи",
+      "measurement_unit": "грамм",
+      "position_type": "raw_material"
+    },
+    {
       "name": "Тесто для пиццы",
       "full_name": "Тесто дрожжевое для пиццы",
       "group": "Полуфабрикаты",
@@ -251,7 +276,7 @@
       "position_type": "goods"
     }
   ],
-  "storage": [
+  "warehouses": [
     {
       "id": "WH00",
       "name": "Центральный склад цеха",

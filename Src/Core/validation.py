@@ -1,4 +1,5 @@
 import math
+from enum import Enum
 
 from Src.Core.exception import ValidationException
 
@@ -67,3 +68,37 @@ class Validation:
         if not (cleaned_value.isascii() and cleaned_value.isdigit()):
             raise ValidationException(field, "Ожидаются только цифры 0-9")
         return cleaned_value
+
+    @staticmethod
+    def validate_items(value: object, field: str) -> list[dict]:
+        """Проверяет, что значение — список json-объектов, и возвращает его."""
+        items = Validation.validate_instance(value, list, field, "Ожидается список")
+        for item in items:
+            Validation.validate_instance(
+                item, dict, field, "Элемент списка должен быть объектом"
+            )
+        return items
+
+    @staticmethod
+    def validate_unique(key: str, collection: dict, field: str) -> str:
+        """Проверяет, что ключа ещё нет в коллекции, и возвращает его."""
+        if key in collection:
+            raise ValidationException(field, f"Значение '{key}' указано повторно")
+        return key
+
+    @staticmethod
+    def validate_reference[T](key: object, collection: dict[str, T], field: str) -> T:
+        """Возвращает элемент коллекции, на который ссылается ключ."""
+        if not isinstance(key, str) or key not in collection:
+            raise ValidationException(field, f"Ссылка на неизвестный элемент '{key}'")
+        return collection[key]
+
+    @staticmethod
+    def validate_enum[E: Enum](value: object, enum_type: type[E], field: str) -> E:
+        """Возвращает элемент перечисления, соответствующий значению."""
+        try:
+            return enum_type(value)
+        except ValueError as ex:
+            raise ValidationException(
+                field, "Значение не входит в допустимый набор"
+            ) from ex
