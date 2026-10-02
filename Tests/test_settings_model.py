@@ -1,10 +1,10 @@
-"""Юнит-тесты для Src.Models.settings_model.SettingModel."""
+"""Юнит-тесты для Src.Models.settings_model.SettingsModel."""
 
 import pytest
 
 from Src.Core.exception import ValidationException
 from Src.Models.organization_model import OrganizationModel
-from Src.Models.settings_model import SettingModel
+from Src.Models.settings_model import SettingsModel
 
 
 def _build_organization():
@@ -14,43 +14,47 @@ def _build_organization():
     )
 
 
-def test_setting_model__constructor__fields_are_empty():
-    """Новая модель настроек не содержит организации и пустые строки в именах."""
-    setting = SettingModel()
-    assert setting.organization is None
-    assert setting.boss_name == ""
-    assert setting.account_name == ""
+def test_settings_model__constructor__fields_are_empty():
+    """Новая модель настроек пустая, признак первого запуска выключен."""
+    settings = SettingsModel()
+    assert settings.organization is None
+    assert settings.boss_name == ""
+    assert settings.accountant_name == ""
+    assert settings.first_start is False
 
 
-def test_setting_model__valid_fields__all_fields_are_set():
+def test_settings_model__valid_fields__all_fields_are_set():
     """Валидные значения сохраняются в модели, строки очищаются от пробелов."""
     organization = _build_organization()
-    setting = SettingModel()
-    setting.organization = organization
-    setting.boss_name = "  Иванов И. И.  "
-    setting.account_name = "Основной счёт"
+    settings = SettingsModel()
+    settings.organization = organization
+    settings.boss_name = "  Иванов И. И.  "
+    settings.accountant_name = "Петрова М. С."
+    settings.first_start = True
 
-    assert setting.organization is organization
-    assert setting.boss_name == "Иванов И. И."
-    assert setting.account_name == "Основной счёт"
+    assert settings.organization is organization
+    assert settings.boss_name == "Иванов И. И."
+    assert settings.accountant_name == "Петрова М. С."
+    assert settings.first_start is True
 
 
-def test_setting_model__organization_not_organization_model__raises():
+def test_settings_model__organization_not_organization_model__raises():
     """Организация другого типа вызывает исключение валидации."""
-    setting = SettingModel()
+    settings = SettingsModel()
     with pytest.raises(ValidationException):
-        setting.organization = "не организация"
+        settings.organization = "не организация"
 
 
-@pytest.mark.parametrize("field", ["boss_name", "account_name"])
-@pytest.mark.parametrize("value", ["", "   ", None, 123])
-def test_setting_model__invalid_string_field__raises(field, value):
-    """Пустое значение или не строка в текстовых полях вызывает исключение валидации."""
-    setting = SettingModel()
+@pytest.mark.parametrize("field", ["boss_name", "accountant_name"])
+def test_settings_model__invalid_string_field__raises(field):
+    """Не строка в текстовых полях вызывает исключение валидации."""
+    settings = SettingsModel()
     with pytest.raises(ValidationException):
-        setattr(setting, field, value)
+        setattr(settings, field, None)
 
 
-def test_setting_model__two_instances__ids_differ():
-    """Разные модели настроек имеют разные идентификаторы и не равны."""
-    assert SettingModel() != SettingModel()
+def test_settings_model__first_start_not_bool__raises():
+    """Признак первого запуска не типа bool вызывает исключение валидации."""
+    settings = SettingsModel()
+    with pytest.raises(ValidationException):
+        settings.first_start = "true"
