@@ -9,56 +9,265 @@
     "account_name": "Основной расчётный счёт",
     "restaurants_count": 10
   },
-
   "restaurants": [
     {
       "id": "R01",
-      "name": "",
-      "address": "",
+      "name": "Ромашка Центральный",
+      "address": "ул. Ленина, 12",
       "service_mode": "delivery_and_dine_in",
-      "working_hours": { "open": "10:00", "close": "22:00" },
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
       "storage_id": "WH01"
+    },
+    {
+      "id": "R02",
+      "name": "Ромашка Северный",
+      "address": "пр. Мира, 45",
+      "service_mode": "delivery",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH02"
+    },
+    {
+      "id": "R03",
+      "name": "Ромашка Южный",
+      "address": "ул. Садовая, 7",
+      "service_mode": "dine_in",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH03"
+    },
+    {
+      "id": "R04",
+      "name": "Ромашка Восточный",
+      "address": "ул. Заводская, 23",
+      "service_mode": "delivery_and_dine_in",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH04"
+    },
+    {
+      "id": "R05",
+      "name": "Ромашка Западный",
+      "address": "пр. Победы, 88",
+      "service_mode": "delivery",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH05"
+    },
+    {
+      "id": "R06",
+      "name": "Ромашка Речной",
+      "address": "наб. Речная, 5",
+      "service_mode": "dine_in",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH06"
+    },
+    {
+      "id": "R07",
+      "name": "Ромашка Академический",
+      "address": "ул. Академика Павлова, 31",
+      "service_mode": "delivery_and_dine_in",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH07"
+    },
+    {
+      "id": "R08",
+      "name": "Ромашка Парковый",
+      "address": "ул. Парковая, 16",
+      "service_mode": "dine_in",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH08"
+    },
+    {
+      "id": "R09",
+      "name": "Ромашка Вокзальный",
+      "address": "пл. Привокзальная, 2",
+      "service_mode": "delivery",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH09"
+    },
+    {
+      "id": "R10",
+      "name": "Ромашка Спальный",
+      "address": "ул. Новоселов, 54",
+      "service_mode": "delivery_and_dine_in",
+      "working_hours": {
+        "open": "10:00",
+        "close": "22:00"
+      },
+      "storage_id": "WH10"
     }
   ],
-
   "production_workshop": {
     "name": "Производственный цех",
+    "address": "ул. Промышленная, 1",
     "working_mode": "24/7",
     "central_storage": {
       "id": "WH00",
-      "categories": ["meat", "dairy"],
+      "categories": [
+        "meat",
+        "dairy"
+      ],
       "refrigeration_required": true,
       "daily_distribution_to_restaurants": true
     }
   },
-
   "database": {
     "engine": "sqlite",
     "path": "./data/romashka.db",
-    "host": "",
-    "login": "",
-    "password": ""
+    "host": null,
+    "login": null,
+    "password": null
   },
-
   "storage": [
     {
       "id": "WH00",
+      "name": "Центральный склад цеха",
       "type": "central",
-      "location_room": ""
+      "premises": {
+        "name": "Холодильный комплекс цеха",
+        "address": "ул. Промышленная, 1",
+        "square": 420.0
+      }
     },
     {
       "id": "WH01",
+      "name": "Склад ресторана Ромашка Центральный",
       "type": "restaurant",
-      "location_room": "",
+      "premises": {
+        "name": "Складское помещение Центральный",
+        "address": "ул. Ленина, 12",
+        "square": 120.0
+      },
       "restaurant_id": "R01"
+    },
+    {
+      "id": "WH02",
+      "name": "Склад ресторана Ромашка Северный",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Северный",
+        "address": "пр. Мира, 45",
+        "square": 60.5
+      },
+      "restaurant_id": "R02"
+    },
+    {
+      "id": "WH03",
+      "name": "Склад ресторана Ромашка Южный",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Южный",
+        "address": "ул. Садовая, 7",
+        "square": 150.0
+      },
+      "restaurant_id": "R03"
+    },
+    {
+      "id": "WH04",
+      "name": "Склад ресторана Ромашка Восточный",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Восточный",
+        "address": "ул. Заводская, 23",
+        "square": 110.0
+      },
+      "restaurant_id": "R04"
+    },
+    {
+      "id": "WH05",
+      "name": "Склад ресторана Ромашка Западный",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Западный",
+        "address": "пр. Победы, 88",
+        "square": 55.0
+      },
+      "restaurant_id": "R05"
+    },
+    {
+      "id": "WH06",
+      "name": "Склад ресторана Ромашка Речной",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Речной",
+        "address": "наб. Речная, 5",
+        "square": 175.5
+      },
+      "restaurant_id": "R06"
+    },
+    {
+      "id": "WH07",
+      "name": "Склад ресторана Ромашка Академический",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Академический",
+        "address": "ул. Академика Павлова, 31",
+        "square": 95.0
+      },
+      "restaurant_id": "R07"
+    },
+    {
+      "id": "WH08",
+      "name": "Склад ресторана Ромашка Парковый",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Парковый",
+        "address": "ул. Парковая, 16",
+        "square": 130.0
+      },
+      "restaurant_id": "R08"
+    },
+    {
+      "id": "WH09",
+      "name": "Склад ресторана Ромашка Вокзальный",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Вокзальный",
+        "address": "пл. Привокзальная, 2",
+        "square": 48.0
+      },
+      "restaurant_id": "R09"
+    },
+    {
+      "id": "WH10",
+      "name": "Склад ресторана Ромашка Спальный",
+      "type": "restaurant",
+      "premises": {
+        "name": "Складское помещение Спальный",
+        "address": "ул. Новоселов, 54",
+        "square": 100.0
+      },
+      "restaurant_id": "R10"
     }
   ],
-
   "inventory": {
     "full_inventory_schedule": "monthly",
     "partial_inventory_schedule": "multiple_per_month"
   },
-
   "production": {
     "operations": [
       "technological_card",
@@ -67,13 +276,39 @@
       "product_release",
       "product_disposal"
     ],
-    "write_off_modes": ["blocking", "balance"],
+    "write_off_modes": [
+      "blocking",
+      "balance"
+    ],
     "technological_card_allows_composition": true
   },
-
   "courier_service": {
     "delivery_zones": [
-      { "zone_id": "Z1", "name": "", "cost": 0 }
+      {
+        "zone_id": "Z1",
+        "name": "Центр",
+        "cost": 150
+      },
+      {
+        "zone_id": "Z2",
+        "name": "Северный район",
+        "cost": 200
+      },
+      {
+        "zone_id": "Z3",
+        "name": "Южный район",
+        "cost": 250
+      },
+      {
+        "zone_id": "Z4",
+        "name": "Восточный район",
+        "cost": 300
+      },
+      {
+        "zone_id": "Z5",
+        "name": "Западный район",
+        "cost": 350
+      }
     ],
     "assignment_strategy": "nearest_available_delivery_restaurant",
     "delivery_menu": {
@@ -81,23 +316,44 @@
       "packaging_included_per_dish": true
     }
   },
-
   "finance": {
-    "payment_types": ["cash", "bank_transfer"],
-    "document_types": ["income", "write_off"],
-    "counterparty_groups": []
+    "payment_types": [
+      "cash",
+      "bank_transfer"
+    ],
+    "document_types": [
+      "income",
+      "write_off"
+    ],
+    "counterparty_groups": [
+      "Поставщики мяса",
+      "Поставщики молочной продукции",
+      "Поставщики бакалеи",
+      "Поставщики упаковки",
+      "Прочие контрагенты"
+    ]
   },
-
   "staff": {
     "categories": [
-      { "name": "production", "schedule_type": "shift", "max_shift_hours": 8 },
-      { "name": "service", "schedule_type": "fixed", "hours_per_day": 8 },
-      { "name": "management", "schedule_type": "fixed", "hours_per_day": 8 }
+      {
+        "name": "production",
+        "schedule_type": "shift",
+        "max_shift_hours": 8
+      },
+      {
+        "name": "service",
+        "schedule_type": "fixed",
+        "hours_per_day": 8
+      },
+      {
+        "name": "management",
+        "schedule_type": "fixed",
+        "hours_per_day": 8
+      }
     ],
     "overtime_rate_multiplier": 2,
     "track_responsible_employee": true
   },
-
   "operational_accounting": {
     "order_types": [
       "delivery_order",
@@ -109,7 +365,6 @@
       "employee_card_locked_if_used_in_stock_operational_or_financial_records": true
     }
   },
-
   "api": {
     "swagger_enabled": true,
     "host": "0.0.0.0",
