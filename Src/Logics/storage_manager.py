@@ -1,7 +1,6 @@
 from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
-from Src.Core.exception import ValidationException
 from Src.Core.position_type import PositionType
 from Src.Core.validation import Validation
 from Src.Models.measurement_unit_model import MeasurementUnitModel
@@ -17,9 +16,6 @@ from Src.Models.warehouse_model import WarehouseModel
 class StorageManager(AbstractManager):
     """Класс менеджера хранилища — singleton, хранит справочники доменных моделей."""
 
-    _DEFAULT_FILE_NAME = "settings.json"
-    _WAREHOUSE_TYPE_CENTRAL = "central"
-    _WAREHOUSE_TYPE_RESTAURANT = "restaurant"
     _instance = None
 
     def __new__(cls) -> Self:
@@ -76,7 +72,7 @@ class StorageManager(AbstractManager):
         """Возвращает склады."""
         return list(self._warehouses.values())
 
-    def start(self, settings: SettingsModel, file_name: str = "") -> None:
+    def start(self, settings: SettingsModel) -> None:
         """Запускает хранилище: при первом старте формирует первичные данные."""
         settings = Validation.validate_instance(
             settings, SettingsModel, "settings", "Настройки указаны некорректно"
@@ -86,150 +82,153 @@ class StorageManager(AbstractManager):
             return
         self._settings = settings
         # Загрузка сохранённых данных — следующий этап, коллекции остаются пустыми.
-        if not settings.first_start:
-            return
-        self.load(file_name)
+        if settings.first_start:
+            self._is_loaded = self.convert()
 
     def convert(self) -> bool:
-        """Формирует коллекции доменных моделей из секций загруженного файла."""
-        data = Validation.validate_instance(
-            self._data, dict, "storage", "Данные хранилища должны быть json-объектом"
+        """Формирует первичные данные: справочники доменных моделей."""
+        self._measurement_units = self._create_measurement_units()
+        self._nomenclature_groups = self._create_nomenclature_groups()
+        self._nomenclature = self._create_nomenclature(
+            self._nomenclature_groups, self._measurement_units
         )
-        workshop = Validation.validate_instance(
-            data.get("production_workshop"),
-            dict,
-            "production_workshop",
-            "Раздел production_workshop отсутствует или некорректен",
+        self._restaurants = self._create_restaurants()
+        self._production_shops = self._create_production_shops()
+        self._warehouses = self._create_warehouses(
+            self._restaurants, self._production_shops
         )
-
-        measurement_units = self._convert_measurement_units(
-            data.get("measurement_units")
-        )
-        nomenclature_groups = self._convert_nomenclature_groups(
-            data.get("nomenclature_groups")
-        )
-        nomenclature = self._convert_nomenclature(
-            data.get("nomenclature"), nomenclature_groups, measurement_units
-        )
-        restaurants, restaurants_by_code = self._convert_restaurants(
-            data.get("restaurants")
-        )
-        production_shop = ProductionShopModel(workshop.get("name"))
-        warehouses = self._convert_warehouses(
-            data.get("warehouses"), restaurants_by_code, production_shop
-        )
-
-        # Коллекции заменяются только после успешной обработки всех секций.
-        self._measurement_units = measurement_units
-        self._nomenclature_groups = nomenclature_groups
-        self._nomenclature = nomenclature
-        self._restaurants = restaurants
-        self._production_shops = {production_shop.name: production_shop}
-        self._warehouses = warehouses
         return True
 
-    def _convert_measurement_units(
-        self, items: object
-    ) -> dict[str, MeasurementUnitModel]:
-        """Создаёт единицы измерения, связывая их с базовыми по имени."""
-        units: dict[str, MeasurementUnitModel] = {}
-        for item in Validation.validate_items(items, "measurement_units"):
-            # Базовая единица должна идти в файле раньше производной.
-            base_unit_name = item.get("base_unit")
-            base_unit = (
-                None
-                if base_unit_name is None
-                else Validation.validate_reference(base_unit_name, units, "base_unit")
-            )
-            unit = MeasurementUnitModel(
-                item.get("name"), item.get("coefficient"), base_unit
-            )
-            Validation.validate_unique(unit.name, units, "measurement_units")
-            units[unit.name] = unit
-        return units
+    @staticmethod
+    def _create_measurement_units() -> dict[str, MeasurementUnitModel]:
+        """Создаёт базовые единицы измерения и кратные им."""
+        gram = MeasurementUnitModel("грамм", 1)
+        milliliter = MeasurementUnitModel("миллилитр", 1)
+        units = [
+            gram,
+            MeasurementUnitModel("килограмм", 1000, gram),
+            milliliter,
+            MeasurementUnitModel("литр", 1000, milliliter),
+            MeasurementUnitModel("штука", 1),
+        ]
+        return {unit.name: unit for unit in units}
 
-    def _convert_nomenclature_groups(
-        self, items: object
-    ) -> dict[str, NomenclatureGroupModel]:
+    @staticmethod
+    def _create_nomenclature_groups() -> dict[str, NomenclatureGroupModel]:
         """Создаёт группы номенклатуры."""
-        groups: dict[str, NomenclatureGroupModel] = {}
-        for item in Validation.validate_items(items, "nomenclature_groups"):
-            group = NomenclatureGroupModel(item.get("name"))
-            Validation.validate_unique(group.name, groups, "nomenclature_groups")
-            groups[group.name] = group
-        return groups
+        names = ["Бакалея", "Молочные продукты", "Овощи", "Полуфабрикаты", "Блюда"]
+        return {name: NomenclatureGroupModel(name) for name in names}
 
-    def _convert_nomenclature(
-        self,
-        items: object,
+    @staticmethod
+    def _create_nomenclature(
         groups: dict[str, NomenclatureGroupModel],
         units: dict[str, MeasurementUnitModel],
     ) -> dict[str, NomenclatureModel]:
-        """Создаёт номенклатуру, связывая её с группами и единицами измерения."""
-        nomenclature: dict[str, NomenclatureModel] = {}
-        for item in Validation.validate_items(items, "nomenclature"):
-            position = NomenclatureModel(
-                item.get("name"),
-                item.get("full_name"),
-                Validation.validate_reference(item.get("group"), groups, "group"),
-                Validation.validate_reference(
-                    item.get("measurement_unit"), units, "measurement_unit"
-                ),
-                Validation.validate_enum(
-                    item.get("position_type"), PositionType, "position_type"
-                ),
-            )
-            Validation.validate_unique(position.name, nomenclature, "nomenclature")
-            nomenclature[position.name] = position
-        return nomenclature
+        """Создаёт номенклатуру рецепта пиццы Маргарита: сырьё, тесто и блюдо."""
+        positions = [
+            NomenclatureModel(
+                "Мука пшеничная",
+                "Мука пшеничная высшего сорта",
+                groups["Бакалея"],
+                units["килограмм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            NomenclatureModel(
+                "Дрожжи сухие",
+                "Дрожжи хлебопекарные сухие",
+                groups["Бакалея"],
+                units["грамм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            NomenclatureModel(
+                "Соль",
+                "Соль поваренная пищевая",
+                groups["Бакалея"],
+                units["грамм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            NomenclatureModel(
+                "Масло оливковое",
+                "Масло оливковое Extra Virgin",
+                groups["Бакалея"],
+                units["миллилитр"],
+                PositionType.RAW_MATERIAL,
+            ),
+            NomenclatureModel(
+                "Сыр Моцарелла",
+                "Сыр Моцарелла для пиццы 45%",
+                groups["Молочные продукты"],
+                units["килограмм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            NomenclatureModel(
+                "Томаты",
+                "Томаты свежие",
+                groups["Овощи"],
+                units["килограмм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            NomenclatureModel(
+                "Базилик",
+                "Базилик зелёный свежий",
+                groups["Овощи"],
+                units["грамм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            NomenclatureModel(
+                "Тесто для пиццы",
+                "Тесто дрожжевое для пиццы",
+                groups["Полуфабрикаты"],
+                units["килограмм"],
+                PositionType.SEMI_FINISHED,
+            ),
+            NomenclatureModel(
+                "Пицца Маргарита",
+                "Пицца Маргарита 30 см",
+                groups["Блюда"],
+                units["штука"],
+                PositionType.DISH,
+            ),
+        ]
+        return {position.name: position for position in positions}
 
-    def _convert_restaurants(
-        self, items: object
-    ) -> tuple[dict[str, RestaurantModel], dict[str, RestaurantModel]]:
-        """Создаёт рестораны; возвращает их по имени и по коду из файла."""
-        restaurants: dict[str, RestaurantModel] = {}
-        restaurants_by_code: dict[str, RestaurantModel] = {}
-        for item in Validation.validate_items(items, "restaurants"):
-            restaurant = RestaurantModel(item.get("name"))
-            code = Validation.validate_string(item.get("id"), "id")
-            Validation.validate_unique(restaurant.name, restaurants, "restaurants")
-            Validation.validate_unique(code, restaurants_by_code, "id")
-            restaurants[restaurant.name] = restaurant
-            restaurants_by_code[code] = restaurant
-        return restaurants, restaurants_by_code
+    @staticmethod
+    def _create_restaurants() -> dict[str, RestaurantModel]:
+        """Создаёт рестораны сети."""
+        names = ["Ромашка Центральный", "Ромашка Северный"]
+        return {name: RestaurantModel(name) for name in names}
 
-    def _convert_warehouses(
-        self,
-        items: object,
-        restaurants_by_code: dict[str, RestaurantModel],
-        production_shop: ProductionShopModel,
+    @staticmethod
+    def _create_production_shops() -> dict[str, ProductionShopModel]:
+        """Создаёт производственный цех."""
+        shop = ProductionShopModel("Производственный цех")
+        return {shop.name: shop}
+
+    @staticmethod
+    def _create_warehouses(
+        restaurants: dict[str, RestaurantModel],
+        production_shops: dict[str, ProductionShopModel],
     ) -> dict[str, WarehouseModel]:
-        """Создаёт склады с помещениями; владелец — ресторан по коду или цех."""
-        warehouses: dict[str, WarehouseModel] = {}
-        for item in Validation.validate_items(items, "warehouses"):
-            premises_data = Validation.validate_instance(
-                item.get("premises"),
-                dict,
-                "premises",
-                "Помещение склада указано некорректно",
-            )
-            premises = PremisesModel(
-                premises_data.get("name"),
-                premises_data.get("address"),
-                premises_data.get("square"),
-            )
-
-            warehouse_type = item.get("type")
-            if warehouse_type == self._WAREHOUSE_TYPE_CENTRAL:
-                owner = production_shop
-            elif warehouse_type == self._WAREHOUSE_TYPE_RESTAURANT:
-                owner = Validation.validate_reference(
-                    item.get("restaurant_id"), restaurants_by_code, "restaurant_id"
-                )
-            else:
-                raise ValidationException("type", "Тип склада указан некорректно")
-
-            warehouse = WarehouseModel(item.get("name"), premises, owner)
-            Validation.validate_unique(warehouse.name, warehouses, "warehouses")
-            warehouses[warehouse.name] = warehouse
-        return warehouses
+        """Создаёт центральный склад цеха и склады ресторанов."""
+        warehouses = [
+            WarehouseModel(
+                "Центральный склад цеха",
+                PremisesModel(
+                    "Холодильный комплекс цеха", "ул. Промышленная, 1", 420.0
+                ),
+                production_shops["Производственный цех"],
+            ),
+            WarehouseModel(
+                "Склад ресторана Ромашка Центральный",
+                PremisesModel(
+                    "Складское помещение Центральный", "ул. Ленина, 12", 120.0
+                ),
+                restaurants["Ромашка Центральный"],
+            ),
+            WarehouseModel(
+                "Склад ресторана Ромашка Северный",
+                PremisesModel("Складское помещение Северный", "пр. Мира, 45", 60.5),
+                restaurants["Ромашка Северный"],
+            ),
+        ]
+        return {warehouse.name: warehouse for warehouse in warehouses}
