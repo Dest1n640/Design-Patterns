@@ -1,44 +1,59 @@
 from Src.Core.abstract_model import AbstractModel
+from Src.Core.validation import Validation
 from Src.Models.organization_model import OrganizationModel
 
-class SettingModel(AbstractModel):
-  """Модель настроект"""
-  __organization: OrganizationModel = None
-  __boss_name: str = ""
-  __account_name: str = ""
 
-  @property
-  def organization(self) -> OrganizationModel:
-    self._validation_organization()
-    return self.__company
+class SettingsModel(AbstractModel):
+    """Класс модели настроек приложения."""
 
-  @organization.setter
-  def organization(self, value: OrganizationModel) -> None:
-    self._validation_organization()
+    def __init__(self) -> None:
+        """Конструктор пустой модели: значения появятся после загрузки настроек."""
+        super().__init__()
+        self.__organization: OrganizationModel | None = None
+        self.__boss_name = ""
+        self.__accountant_name = ""
+        self.__first_start = False
 
-  @property
-  def boss_name(self) -> str:
-    return self.boss_name
+    @property
+    def organization(self) -> OrganizationModel | None:
+        """Возвращает организацию; None, пока настройки не загружены."""
+        return self.__organization
 
-  @boss_name.setter
-  def boss_name(self, value: str) -> None:
-    self._validation_boss_name()
-    self.boss_name = value.strip()
+    @property
+    def boss_name(self) -> str:
+        """Возвращает ФИО руководителя организации."""
+        return self.__boss_name
 
-  @property
-  def account_name(self) -> str:
-    return self.account_name
+    @property
+    def accountant_name(self) -> str:
+        """Возвращает ФИО главного бухгалтера организации."""
+        return self.__accountant_name
 
-  @account_name.setter
-  def account_name(self, value: str) -> None:
-    self._validation_account_name()
-    self.account_name = value.strip()
-    
-  def _validation_organization(self):
-    pass
+    @property
+    def first_start(self) -> bool:
+        """Возвращает признак первого запуска приложения."""
+        return self.__first_start
 
-  def _validation_boss_name(self):
-    pass
+    @organization.setter
+    def organization(self, value: OrganizationModel) -> None:
+        """Устанавливает организацию."""
+        self.__organization = Validation.validate_instance(
+            value, OrganizationModel, "organization", "Организация указана некорректно"
+        )
 
-  def _validation_account_name(self):
-    pass
+    @boss_name.setter
+    def boss_name(self, value: str) -> None:
+        """Устанавливает ФИО руководителя организации."""
+        self.__boss_name = Validation.validate_string(value, "boss_name")
+
+    @accountant_name.setter
+    def accountant_name(self, value: str) -> None:
+        """Устанавливает ФИО главного бухгалтера организации."""
+        self.__accountant_name = Validation.validate_string(value, "accountant_name")
+
+    @first_start.setter
+    def first_start(self, value: bool) -> None:
+        """Устанавливает признак первого запуска приложения."""
+        self.__first_start = Validation.validate_instance(
+            value, bool, "first_start", "Признак первого запуска должен быть bool"
+        )

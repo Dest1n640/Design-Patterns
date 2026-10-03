@@ -5,9 +5,11 @@ from Src.Core.validation import Validation
 class OrganizationModel(NamedModel):
     """Класс сущности - организация."""
 
-    def __init__(self, inn: str, bic: str, curr_account: str, legal_form: str):
-        """Конструктор с присвоением имени ООО Ромашка."""
-        super().__init__("Ромашка")
+    def __init__(
+        self, name: str, inn: str, bic: str, curr_account: str, legal_form: str
+    ):
+        """Конструктор организации с именем и реквизитами."""
+        super().__init__(name)
         self.inn = inn
         self.bic = bic
         self.curr_account = curr_account
