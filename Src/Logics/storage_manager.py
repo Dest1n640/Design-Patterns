@@ -10,6 +10,7 @@ from Src.Models.premises_model import PremisesModel
 from Src.Models.production_shop_model import ProductionShopModel
 from Src.Models.restaurant_model import RestaurantModel
 from Src.Models.settings_model import SettingsModel
+from Src.Models.technological_map_model import TechnologicalMapModel
 from Src.Models.warehouse_model import WarehouseModel
 
 
@@ -36,6 +37,7 @@ class StorageManager(AbstractManager):
         self._restaurants: dict[str, RestaurantModel] = {}
         self._production_shops: dict[str, ProductionShopModel] = {}
         self._warehouses: dict[str, WarehouseModel] = {}
+        self._technological_maps: dict[str, TechnologicalMapModel] = {}
 
     @property
     def settings(self) -> SettingsModel | None:
@@ -72,6 +74,11 @@ class StorageManager(AbstractManager):
         """Возвращает склады."""
         return list(self._warehouses.values())
 
+    @property
+    def technological_maps(self) -> list[TechnologicalMapModel]:
+        """Возвращает технологические карты (рецепты)."""
+        return list(self._technological_maps.values())
+
     def start(self, settings: SettingsModel) -> None:
         """Запускает хранилище: при первом старте формирует первичные данные."""
         settings = Validation.validate_instance(
@@ -97,6 +104,7 @@ class StorageManager(AbstractManager):
         self._warehouses = self._create_warehouses(
             self._restaurants, self._production_shops
         )
+        self._technological_maps = self._create_technological_maps()
         return True
 
     @staticmethod
@@ -229,3 +237,9 @@ class StorageManager(AbstractManager):
             ),
         ]
         return {warehouse.name: warehouse for warehouse in warehouses}
+
+    @staticmethod
+    def _create_technological_maps() -> dict[str, TechnologicalMapModel]:
+        """Создаёт технологическую карту рецепта пиццы Маргарита."""
+        technological_map = TechnologicalMapModel.create_technological_map()
+        return {technological_map.name: technological_map}
