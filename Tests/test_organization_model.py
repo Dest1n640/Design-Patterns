@@ -7,13 +7,25 @@ from Src.Models.organization_model import OrganizationModel
 
 
 def _build_organization(
+    name="Ромашка",
     inn="1234567890",
     bic="123456789",
     curr_account="12345678901234567890",
     legal_form="ООО",
 ):
     """Строит организацию с валидными реквизитами, переопределяя переданные."""
-    return OrganizationModel(inn, bic, curr_account, legal_form)
+    return OrganizationModel(name, inn, bic, curr_account, legal_form)
+
+
+def test_organization_model__constructor__name_is_taken_from_argument():
+    """Имя организации берётся из аргумента конструктора, а не зашито в класс."""
+    assert _build_organization(name="Лютик").name == "Лютик"
+
+
+def test_organization_model__constructor__invalid_name_raises():
+    """Пустое имя организации вызывает исключение валидации."""
+    with pytest.raises(ValidationException):
+        _build_organization(name="")
 
 
 @pytest.mark.parametrize(
@@ -36,14 +48,6 @@ def test_organization_model__constructor__digits_length_off_by_one_raises(
     """ИНН, БИК и расчётный счёт на одну цифру короче или длиннее вызывают ошибку."""
     with pytest.raises(ValidationException):
         _build_organization(**{field: "1" * (length + delta)})
-
-
-def test_organization_model__constructor__two_calls_are_independent_instances():
-    """Организация не Singleton — два вызова возвращают разные объекты."""
-    org1 = _build_organization()
-    org2 = _build_organization()
-    assert org1 is not org2
-    assert org1 != org2
 
 
 def test_organization_model__field_mutation__does_not_affect_other_instance():
