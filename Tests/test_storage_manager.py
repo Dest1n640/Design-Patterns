@@ -13,6 +13,7 @@ COLLECTIONS = [
     "restaurants",
     "production_shops",
     "warehouses",
+    "technological_maps",
 ]
 
 
@@ -146,6 +147,14 @@ def test_storage_manager__first_start__all_ids_are_unique():
         *manager.production_shops,
         *manager.warehouses,
         *(warehouse.premises for warehouse in manager.warehouses),
+        *manager.technological_maps,
+        *(dish for tmap in manager.technological_maps for dish in tmap.dishes),
+        *(
+            ingredient
+            for tmap in manager.technological_maps
+            for dish in tmap.dishes
+            for ingredient in dish.ingredients
+        ),
     ]
     ids = [item.id for item in objects]
     assert len(ids) == len(set(ids))
@@ -165,3 +174,13 @@ def test_storage_manager__first_start__recipe_positions_exist():
         "Тесто для пиццы",
         "Пицца Маргарита",
     } <= names
+
+
+def test_storage_manager__first_start__technological_map_is_margherita():
+    """Хранилище содержит технологическую карту «Пицца Маргарита» с тестом и пиццей."""
+    maps = _by_name(_build_started_manager().technological_maps)
+    assert list(maps) == ["Пицца Маргарита"]
+    assert [dish.name for dish in maps["Пицца Маргарита"].dishes] == [
+        "Тесто для пиццы",
+        "Пицца Маргарита",
+    ]
