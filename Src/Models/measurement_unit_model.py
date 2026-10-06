@@ -58,3 +58,28 @@ class MeasurementUnitModel(NamedModel):
         return Validation.validate_instance(
             value, MeasurementUnitModel, "base_unit", self._BASE_UNIT_ERROR
         )
+
+    @classmethod
+    def create_gram(cls) -> Self:
+        """Фабричный метод: создаёт грамм."""
+        return cls("грамм", 1)
+
+    @classmethod
+    def create_kilogram(cls, gram: Self | None = None) -> Self:
+        """Фабричный метод: создаёт килограмм, кратный грамму."""
+        return cls("килограмм", 1000, gram or cls.create_gram())
+
+    @classmethod
+    def create_milliliter(cls) -> Self:
+        """Фабричный метод: создаёт миллилитр."""
+        return cls("миллилитр", 1)
+
+    @classmethod
+    def create_liter(cls, milliliter: Self | None = None) -> Self:
+        """Фабричный метод: создаёт литр, кратный миллилитру."""
+        return cls("литр", 1000, milliliter or cls.create_milliliter())
+
+    @classmethod
+    def create_piece(cls) -> Self:
+        """Фабричный метод: создаёт штуку."""
+        return cls("штука", 1)

@@ -102,15 +102,12 @@ class StorageManager(AbstractManager):
     @staticmethod
     def _create_measurement_units() -> dict[str, MeasurementUnitModel]:
         """Создаёт базовые единицы измерения и кратные им."""
-        gram = MeasurementUnitModel("грамм", 1)
-        milliliter = MeasurementUnitModel("миллилитр", 1)
-        units = [
-            gram,
-            MeasurementUnitModel("килограмм", 1000, gram),
-            milliliter,
-            MeasurementUnitModel("литр", 1000, milliliter),
-            MeasurementUnitModel("штука", 1),
-        ]
+        gram = MeasurementUnitModel.create_gram()
+        milliliter = MeasurementUnitModel.create_milliliter()
+        kilogram = MeasurementUnitModel.create_kilogram(gram)
+        liter = MeasurementUnitModel.create_liter(milliliter)
+        piece = MeasurementUnitModel.create_piece()
+        units = [gram, kilogram, milliliter, liter, piece]
         return {unit.name: unit for unit in units}
 
     @staticmethod
