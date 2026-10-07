@@ -56,10 +56,8 @@ class DishModel(NamedModel):
 
     @classmethod
     def create_margherita_dishes(cls) -> list[Self]:
-        """Фабричный метод: создаёт блюда рецепта «Пицца Маргарита».
-
-        Возвращает «Тесто для пиццы» и «Пицца Маргарита» с шагами приготовления
-        из _docs/recipes/pizza_margherita.md.
+        """
+        Фабричный метод: создаёт блюда рецепта «Пицца Маргарита».
         """
         ingredients = IngredientModel.create_margherita_ingredients()
         dough_recipe = "\n".join(

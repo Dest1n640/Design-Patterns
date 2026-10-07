@@ -47,12 +47,8 @@ class IngredientModel(NomenclatureModel):
 
     @classmethod
     def create_margherita_ingredients(cls) -> dict[str, list[Self]]:
-        """Фабричный метод: создаёт ингредиенты рецепта «Пицца Маргарита».
-
-        Возвращает ингредиенты по названию блюда: «Тесто для пиццы» и
-        «Пицца Маргарита» (_docs/recipes/pizza_margherita.md). Воду не включаем:
-        по рецепту она не учитывается в номенклатуре. Вес брутто и нетто в рецепте
-        не различается, поэтому берём одно количество.
+        """
+        Фабричный метод: создаёт ингредиенты рецепта «Пицца Маргарита».
         """
         gram = MeasurementUnitModel.create_gram()
         milliliter = MeasurementUnitModel.create_milliliter()
