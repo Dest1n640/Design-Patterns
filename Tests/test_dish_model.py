@@ -68,3 +68,25 @@ def test_dish_model__create_margherita__ingredients_count():
     dough, pizza = DishModel.create_margherita_dishes()
 
     assert (len(dough.ingredients), len(pizza.ingredients)) == (4, 6)
+
+
+def test_dish_model__calculate_netto__sum_of_ingredients_netto():
+    """Нетто блюда — сумма нетто ингредиентов: тесто 160 г, пицца 541 г."""
+    dough, pizza = DishModel.create_margherita_dishes()
+
+    assert (dough.calculate_netto(), pizza.calculate_netto()) == (160, 541)
+
+
+def test_dish_model__calculate_brutto__sum_of_ingredients_brutto():
+    """Брутто блюда — сумма брутто ингредиентов: тесто 160 г, пицца 541 г."""
+    dough, pizza = DishModel.create_margherita_dishes()
+
+    assert (dough.calculate_brutto(), pizza.calculate_brutto()) == (160, 541)
+
+
+def test_dish_model__calculate__netto_and_brutto_differ_when_loss():
+    """Нетто и брутто считаются независимо: при потерях они различаются."""
+    dough = DishModel.create_margherita_dishes()[0]
+    dough.ingredients[0].brutto = 200
+
+    assert (dough.calculate_brutto(), dough.calculate_netto()) == (210, 160)

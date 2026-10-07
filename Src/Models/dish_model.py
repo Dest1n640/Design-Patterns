@@ -46,6 +46,14 @@ class DishModel(NamedModel):
         """Устанавливает рецепт приготовления блюда."""
         self.__recipe = Validation.validate_string(new_recipe, "recipe")
 
+    def calculate_netto(self) -> int | float:
+        """Возвращает суммарный вес нетто ингредиентов блюда."""
+        return sum(ingredient.netto for ingredient in self.ingredients)
+
+    def calculate_brutto(self) -> int | float:
+        """Возвращает суммарный вес брутто ингредиентов блюда."""
+        return sum(ingredient.brutto for ingredient in self.ingredients)
+
     @classmethod
     def create_margherita_dishes(cls) -> list[Self]:
         """Фабричный метод: создаёт блюда рецепта «Пицца Маргарита».

@@ -12,8 +12,6 @@ def test_technological_map_model__constructor__without_dishes_is_empty():
     technological_map = TechnologicalMapModel("Карта")
 
     assert technological_map.dishes == []
-    assert technological_map.calculate_netto() == 0
-    assert technological_map.calculate_brutto() == 0
 
 
 def test_technological_map_model__constructor__empty_maps_do_not_share_dishes():
@@ -67,35 +65,3 @@ def test_technological_map_model__create_technological_map__margherita_dishes():
         "Тесто для пиццы",
         "Пицца Маргарита",
     ]
-
-
-def test_technological_map_model__calculate_netto__sum_of_dishes_netto():
-    """Нетто карты — сумма нетто ингредиентов: тесто 160 г + пицца 541 г."""
-    technological_map = TechnologicalMapModel.create_technological_map()
-    dough, pizza = technological_map.dishes
-
-    assert sum(i.netto for i in dough.ingredients) == 160
-    assert sum(i.netto for i in pizza.ingredients) == 541
-    assert technological_map.calculate_netto() == 701
-
-
-def test_technological_map_model__calculate_brutto__sum_of_dishes_brutto():
-    """Брутто карты — сумма брутто ингредиентов: тесто 160 г + пицца 541 г."""
-    technological_map = TechnologicalMapModel.create_technological_map()
-    dough, pizza = technological_map.dishes
-
-    assert sum(i.brutto for i in dough.ingredients) == 160
-    assert sum(i.brutto for i in pizza.ingredients) == 541
-    assert technological_map.calculate_brutto() == 701
-
-
-def test_technological_map_model__calculate__netto_and_brutto_differ_when_loss():
-    """Нетто и брутто считаются независимо: при потерях они различаются."""
-    technological_map = TechnologicalMapModel("Карта")
-    dish = DishModel.create_margherita_dishes()[0]
-    flour = dish.ingredients[0]
-    flour.brutto = 200
-    technological_map.add_dish(dish)
-
-    assert technological_map.calculate_brutto() == 210
-    assert technological_map.calculate_netto() == 160

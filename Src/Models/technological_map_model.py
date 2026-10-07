@@ -38,18 +38,6 @@ class TechnologicalMapModel(NamedModel):
         self.__dishes.append(validated)
         return self.dishes
 
-    def calculate_netto(self) -> int | float:
-        """Возвращает суммарный вес нетто ингредиентов всех блюд карты."""
-        return sum(
-            ingredient.netto for dish in self.dishes for ingredient in dish.ingredients
-        )
-
-    def calculate_brutto(self) -> int | float:
-        """Возвращает суммарный вес брутто ингредиентов всех блюд карты."""
-        return sum(
-            ingredient.brutto for dish in self.dishes for ingredient in dish.ingredients
-        )
-
     @classmethod
     def create_technological_map(cls) -> Self:
         """Фабричный метод: создаёт составную карту «Пицца Маргарита»."""
