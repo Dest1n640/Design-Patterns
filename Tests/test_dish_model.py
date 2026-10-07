@@ -90,3 +90,23 @@ def test_dish_model__calculate__netto_and_brutto_differ_when_loss():
     dough.ingredients[0].brutto = 200
 
     assert (dough.calculate_brutto(), dough.calculate_netto()) == (210, 160)
+
+
+def test_dish_model__calculate__add_ingredient_increases_weight():
+    """Добавление ингредиента (томаты: брутто 180, нетто 150) увеличивает вес."""
+    dough, pizza = DishModel.create_margherita_dishes()
+    tomatoes = pizza.ingredients[1]
+    tomatoes.brutto = 180
+
+    dough.ingredients = [*dough.ingredients, tomatoes]
+
+    assert (dough.calculate_brutto(), dough.calculate_netto()) == (340, 310)
+
+
+def test_dish_model__calculate__remove_ingredient_decreases_weight():
+    """Исключение муки (150 г) уменьшает вес теста со 160 до 10 г."""
+    dough = DishModel.create_margherita_dishes()[0]
+
+    dough.ingredients = dough.ingredients[1:]
+
+    assert (dough.calculate_brutto(), dough.calculate_netto()) == (10, 10)
