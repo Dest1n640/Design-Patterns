@@ -1,12 +1,11 @@
 from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
-from Src.Core.position_type import PositionType
+from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 from Src.Models.nomenclature_model import NomenclatureModel
-from Src.Models.premises_model import PremisesModel
 from Src.Models.production_shop_model import ProductionShopModel
 from Src.Models.restaurant_model import RestaurantModel
 from Src.Models.settings_model import SettingsModel
@@ -93,153 +92,33 @@ class StorageManager(AbstractManager):
             self._is_loaded = self.convert()
 
     def convert(self) -> bool:
-        """Формирует первичные данные: справочники доменных моделей."""
-        self._measurement_units = self._create_measurement_units()
-        self._nomenclature_groups = self._create_nomenclature_groups()
-        self._nomenclature = self._create_nomenclature(
-            self._nomenclature_groups, self._measurement_units
+        """Формирует первичные данные фабричными методами доменных моделей."""
+        self._measurement_units = self._by_name(
+            MeasurementUnitModel.create_default_units()
         )
-        self._restaurants = self._create_restaurants()
-        self._production_shops = self._create_production_shops()
-        self._warehouses = self._create_warehouses(
-            self._restaurants, self._production_shops
+        self._nomenclature_groups = self._by_name(
+            NomenclatureGroupModel.create_default_groups()
         )
-        self._technological_maps = self._create_technological_maps()
+        self._nomenclature = self._by_name(
+            NomenclatureModel.create_margherita_nomenclature(
+                self._nomenclature_groups, self._measurement_units
+            )
+        )
+        self._restaurants = self._by_name(RestaurantModel.create_default_restaurants())
+        self._production_shops = self._by_name(
+            ProductionShopModel.create_default_production_shops()
+        )
+        self._warehouses = self._by_name(
+            WarehouseModel.create_default_warehouses(
+                self._restaurants, self._production_shops
+            )
+        )
+        self._technological_maps = self._by_name(
+            [TechnologicalMapModel.create_technological_map()]
+        )
         return True
 
     @staticmethod
-    def _create_measurement_units() -> dict[str, MeasurementUnitModel]:
-        """Создаёт базовые единицы измерения и кратные им."""
-        gram = MeasurementUnitModel.create_gram()
-        milliliter = MeasurementUnitModel.create_milliliter()
-        kilogram = MeasurementUnitModel.create_kilogram(gram)
-        liter = MeasurementUnitModel.create_liter(milliliter)
-        piece = MeasurementUnitModel.create_piece()
-        units = [gram, kilogram, milliliter, liter, piece]
-        return {unit.name: unit for unit in units}
-
-    @staticmethod
-    def _create_nomenclature_groups() -> dict[str, NomenclatureGroupModel]:
-        """Создаёт группы номенклатуры."""
-        names = ["Бакалея", "Молочные продукты", "Овощи", "Полуфабрикаты", "Блюда"]
-        return {name: NomenclatureGroupModel(name) for name in names}
-
-    @staticmethod
-    def _create_nomenclature(
-        groups: dict[str, NomenclatureGroupModel],
-        units: dict[str, MeasurementUnitModel],
-    ) -> dict[str, NomenclatureModel]:
-        """Создаёт номенклатуру рецепта пиццы Маргарита: сырьё, тесто и блюдо."""
-        positions = [
-            NomenclatureModel(
-                "Мука пшеничная",
-                "Мука пшеничная высшего сорта",
-                groups["Бакалея"],
-                units["килограмм"],
-                PositionType.RAW_MATERIAL,
-            ),
-            NomenclatureModel(
-                "Дрожжи сухие",
-                "Дрожжи хлебопекарные сухие",
-                groups["Бакалея"],
-                units["грамм"],
-                PositionType.RAW_MATERIAL,
-            ),
-            NomenclatureModel(
-                "Соль",
-                "Соль поваренная пищевая",
-                groups["Бакалея"],
-                units["грамм"],
-                PositionType.RAW_MATERIAL,
-            ),
-            NomenclatureModel(
-                "Масло оливковое",
-                "Масло оливковое Extra Virgin",
-                groups["Бакалея"],
-                units["миллилитр"],
-                PositionType.RAW_MATERIAL,
-            ),
-            NomenclatureModel(
-                "Сыр Моцарелла",
-                "Сыр Моцарелла для пиццы 45%",
-                groups["Молочные продукты"],
-                units["килограмм"],
-                PositionType.RAW_MATERIAL,
-            ),
-            NomenclatureModel(
-                "Томаты",
-                "Томаты свежие",
-                groups["Овощи"],
-                units["килограмм"],
-                PositionType.RAW_MATERIAL,
-            ),
-            NomenclatureModel(
-                "Базилик",
-                "Базилик зелёный свежий",
-                groups["Овощи"],
-                units["грамм"],
-                PositionType.RAW_MATERIAL,
-            ),
-            NomenclatureModel(
-                "Тесто для пиццы",
-                "Тесто дрожжевое для пиццы",
-                groups["Полуфабрикаты"],
-                units["килограмм"],
-                PositionType.SEMI_FINISHED,
-            ),
-            NomenclatureModel(
-                "Пицца Маргарита",
-                "Пицца Маргарита 30 см",
-                groups["Блюда"],
-                units["штука"],
-                PositionType.DISH,
-            ),
-        ]
-        return {position.name: position for position in positions}
-
-    @staticmethod
-    def _create_restaurants() -> dict[str, RestaurantModel]:
-        """Создаёт рестораны сети."""
-        names = ["Ромашка Центральный", "Ромашка Северный"]
-        return {name: RestaurantModel(name) for name in names}
-
-    @staticmethod
-    def _create_production_shops() -> dict[str, ProductionShopModel]:
-        """Создаёт производственный цех."""
-        shop = ProductionShopModel("Производственный цех")
-        return {shop.name: shop}
-
-    @staticmethod
-    def _create_warehouses(
-        restaurants: dict[str, RestaurantModel],
-        production_shops: dict[str, ProductionShopModel],
-    ) -> dict[str, WarehouseModel]:
-        """Создаёт центральный склад цеха и склады ресторанов."""
-        warehouses = [
-            WarehouseModel(
-                "Центральный склад цеха",
-                PremisesModel(
-                    "Холодильный комплекс цеха", "ул. Промышленная, 1", 420.0
-                ),
-                production_shops["Производственный цех"],
-            ),
-            WarehouseModel(
-                "Склад ресторана Ромашка Центральный",
-                PremisesModel(
-                    "Складское помещение Центральный", "ул. Ленина, 12", 120.0
-                ),
-                restaurants["Ромашка Центральный"],
-            ),
-            WarehouseModel(
-                "Склад ресторана Ромашка Северный",
-                PremisesModel("Складское помещение Северный", "пр. Мира, 45", 60.5),
-                restaurants["Ромашка Северный"],
-            ),
-        ]
-        return {warehouse.name: warehouse for warehouse in warehouses}
-
-    @staticmethod
-    def _create_technological_maps() -> dict[str, TechnologicalMapModel]:
-        """Создаёт технологическую карту рецепта пиццы Маргарита."""
-        technological_map = TechnologicalMapModel.create_technological_map()
-        return {technological_map.name: technological_map}
+    def _by_name[T: NamedModel](models: list[T]) -> dict[str, T]:
+        """Возвращает словарь моделей с ключом по имени."""
+        return {model.name: model for model in models}
