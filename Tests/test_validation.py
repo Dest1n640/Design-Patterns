@@ -119,7 +119,7 @@ def test_validation__validate_positive_number__zero_or_negative_raises(value):
 
 @pytest.mark.parametrize("value", [True, False])
 def test_validation__validate_positive_number__bool_raises(value):
-    """bool не считается числом, хотя является подклассом int."""
+    """Значение bool не считается числом, хотя является подклассом int."""
     with pytest.raises(ValidationException):
         Validation.validate_positive_number(value, "square")
 
