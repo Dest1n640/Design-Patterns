@@ -4,22 +4,26 @@ from Src.Core.exception import ValidationException
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 from Src.Models.ingredient_model import IngredientModel
+from Src.Models.measurement_unit_model import MeasurementUnitModel
+from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 
 
 class DishModel(NamedModel):
-    """Класс блюда — состав из ингредиентов и рецепт приготовления."""
+    """Класс блюда — состав из ингредиентов и вложенных блюд, рецепт приготовления."""
 
     _INGREDIENTS_ERROR = "Состав блюда указан некорректно"
 
-    def __init__(self, name: str, ingredients: list[IngredientModel], recipe: str):
+    def __init__(
+        self, name: str, ingredients: list[IngredientModel | Self], recipe: str
+    ):
         """Конструктор блюда."""
         super().__init__(name)
         self.ingredients = ingredients
         self.recipe = recipe
 
     @property
-    def ingredients(self) -> list[IngredientModel]:
-        """Возвращает ингредиенты, входящие в состав блюда."""
+    def ingredients(self) -> list[IngredientModel | Self]:
+        """Возвращает состав блюда: ингредиенты и вложенные блюда-полуфабрикаты."""
         return list(self.__ingredients)
 
     @property
@@ -28,8 +32,8 @@ class DishModel(NamedModel):
         return self.__recipe
 
     @ingredients.setter
-    def ingredients(self, new_ingredients: list[IngredientModel]):
-        """Устанавливает ингредиенты, входящие в состав блюда."""
+    def ingredients(self, new_ingredients: list[IngredientModel | Self]):
+        """Устанавливает состав блюда: ингредиенты и вложенные блюда-полуфабрикаты."""
         validated = Validation.validate_instance(
             new_ingredients, list, "ingredients", self._INGREDIENTS_ERROR
         )
@@ -37,7 +41,10 @@ class DishModel(NamedModel):
             raise ValidationException("ingredients", self._INGREDIENTS_ERROR)
         for ingredient in validated:
             Validation.validate_instance(
-                ingredient, IngredientModel, "ingredients", self._INGREDIENTS_ERROR
+                ingredient,
+                (IngredientModel, DishModel),
+                "ingredients",
+                self._INGREDIENTS_ERROR,
             )
         self.__ingredients = list(validated)
 
@@ -47,19 +54,27 @@ class DishModel(NamedModel):
         self.__recipe = Validation.validate_string(new_recipe, "recipe")
 
     def calculate_netto(self) -> int | float:
-        """Возвращает суммарный вес нетто ингредиентов блюда."""
-        return sum(ingredient.netto for ingredient in self.ingredients)
+        """Возвращает вес нетто блюда; вложенные блюда считаются рекурсивно."""
+        return sum(
+            item.calculate_netto() if isinstance(item, DishModel) else item.netto
+            for item in self.ingredients
+        )
 
     def calculate_brutto(self) -> int | float:
-        """Возвращает суммарный вес брутто ингредиентов блюда."""
-        return sum(ingredient.brutto for ingredient in self.ingredients)
+        """Возвращает вес брутто блюда; вложенные блюда считаются рекурсивно."""
+        return sum(
+            item.calculate_brutto() if isinstance(item, DishModel) else item.brutto
+            for item in self.ingredients
+        )
 
     @classmethod
-    def create_margherita_dishes(cls) -> list[Self]:
-        """
-        Фабричный метод: создаёт блюда рецепта «Пицца Маргарита».
-        """
-        ingredients = IngredientModel.create_margherita_ingredients()
+    def create_margherita_dishes(
+        cls,
+        groups: dict[str, NomenclatureGroupModel],
+        units: dict[str, MeasurementUnitModel],
+    ) -> list[Self]:
+        """Фабричный метод: создаёт тесто и пиццу, в которую тесто входит блюдом."""
+        ingredients = IngredientModel.create_margherita_ingredients(groups, units)
         dough_recipe = "\n".join(
             [
                 "1. Растворить дрожжи в тёплой воде (35–38 °C) и оставить "
@@ -87,7 +102,10 @@ class DishModel(NamedModel):
                 "7. Сразу после выпечки выложить листья базилика.",
             ]
         )
-        return [
-            cls("Тесто для пиццы", ingredients["Тесто для пиццы"], dough_recipe),
-            cls("Пицца Маргарита", ingredients["Пицца Маргарита"], pizza_recipe),
-        ]
+        dough = cls("Тесто для пиццы", ingredients["Тесто для пиццы"], dough_recipe)
+        pizza = cls(
+            "Пицца Маргарита",
+            [dough, *ingredients["Пицца Маргарита"]],
+            pizza_recipe,
+        )
+        return [dough, pizza]

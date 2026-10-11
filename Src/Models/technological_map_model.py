@@ -3,6 +3,8 @@ from typing import Self
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 from Src.Models.dish_model import DishModel
+from Src.Models.measurement_unit_model import MeasurementUnitModel
+from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 
 
 class TechnologicalMapModel(NamedModel):
@@ -39,6 +41,10 @@ class TechnologicalMapModel(NamedModel):
         return self.dishes
 
     @classmethod
-    def create_technological_map(cls) -> Self:
+    def create_technological_map(
+        cls,
+        groups: dict[str, NomenclatureGroupModel],
+        units: dict[str, MeasurementUnitModel],
+    ) -> Self:
         """Фабричный метод: создаёт составную карту «Пицца Маргарита»."""
-        return cls("Пицца Маргарита", DishModel.create_margherita_dishes())
+        return cls("Пицца Маргарита", DishModel.create_margherita_dishes(groups, units))

@@ -114,7 +114,11 @@ class StorageManager(AbstractManager):
             )
         )
         self._technological_maps = self._by_name(
-            [TechnologicalMapModel.create_technological_map()]
+            [
+                TechnologicalMapModel.create_technological_map(
+                    self._nomenclature_groups, self._measurement_units
+                )
+            ]
         )
         return True
 

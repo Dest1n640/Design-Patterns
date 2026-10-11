@@ -44,13 +44,15 @@ def test_ingredient_model__constructor__invalid_netto_raises(value):
         _build_ingredient(netto=value)
 
 
-def test_ingredient_model__create_margherita__dishes_and_ingredients_count():
-    """Фабрика возвращает ингредиенты теста (4) и пиццы (6)."""
-    ingredients = IngredientModel.create_margherita_ingredients()
+def test_ingredient_model__create_margherita__dishes_and_ingredients_count(
+    groups, units
+):
+    """Фабрика возвращает сырьё теста (4) и пиццы (5, без теста)."""
+    ingredients = IngredientModel.create_margherita_ingredients(groups, units)
 
     assert {name: len(items) for name, items in ingredients.items()} == {
         "Тесто для пиццы": 4,
-        "Пицца Маргарита": 6,
+        "Пицца Маргарита": 5,
     }
 
 
@@ -69,7 +71,6 @@ def test_ingredient_model__create_margherita__dishes_and_ingredients_count():
         (
             "Пицца Маргарита",
             {
-                "Тесто для пиццы": (250, "грамм"),
                 "Томаты": (150, "грамм"),
                 "Сыр Моцарелла": (125, "грамм"),
                 "Масло оливковое": (10, "миллилитр"),
@@ -79,25 +80,13 @@ def test_ingredient_model__create_margherita__dishes_and_ingredients_count():
         ),
     ],
 )
-def test_ingredient_model__create_margherita__quantities_match_recipe(dish, expected):
+def test_ingredient_model__create_margherita__quantities_match_recipe(
+    dish, expected, groups, units
+):
     """Количества и единицы измерения совпадают с рецептом pizza_margherita.md."""
-    ingredients = IngredientModel.create_margherita_ingredients()[dish]
+    ingredients = IngredientModel.create_margherita_ingredients(groups, units)[dish]
 
     assert {
         item.name: (item.netto, item.measurement_unit.name) for item in ingredients
     } == expected
     assert all(item.brutto == item.netto for item in ingredients)
-
-
-def test_ingredient_model__create_margherita__dough_is_semi_finished():
-    """Тесто в составе пиццы — полуфабрикат, остальное — сырьё."""
-    pizza = IngredientModel.create_margherita_ingredients()["Пицца Маргарита"]
-
-    assert {item.name: item.position_type for item in pizza} == {
-        "Тесто для пиццы": PositionType.SEMI_FINISHED,
-        "Томаты": PositionType.RAW_MATERIAL,
-        "Сыр Моцарелла": PositionType.RAW_MATERIAL,
-        "Масло оливковое": PositionType.RAW_MATERIAL,
-        "Базилик": PositionType.RAW_MATERIAL,
-        "Соль": PositionType.RAW_MATERIAL,
-    }

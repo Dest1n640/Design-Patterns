@@ -46,16 +46,17 @@ class IngredientModel(NomenclatureModel):
         self.__netto = Validation.validate_positive_number(new_netto, "netto")
 
     @classmethod
-    def create_margherita_ingredients(cls) -> dict[str, list[Self]]:
-        """
-        Фабричный метод: создаёт ингредиенты рецепта «Пицца Маргарита».
-        """
-        gram = MeasurementUnitModel.create_gram()
-        milliliter = MeasurementUnitModel.create_milliliter()
-        pantry = NomenclatureGroupModel("Бакалея")
-        dairy = NomenclatureGroupModel("Молочные продукты")
-        vegetables = NomenclatureGroupModel("Овощи")
-        semi_finished = NomenclatureGroupModel("Полуфабрикаты")
+    def create_margherita_ingredients(
+        cls,
+        groups: dict[str, NomenclatureGroupModel],
+        units: dict[str, MeasurementUnitModel],
+    ) -> dict[str, list[Self]]:
+        """Фабричный метод: создаёт сырьё рецепта «Пицца Маргарита» из справочников."""
+        gram = units["грамм"]
+        milliliter = units["миллилитр"]
+        pantry = groups["Бакалея"]
+        dairy = groups["Молочные продукты"]
+        vegetables = groups["Овощи"]
         raw = PositionType.RAW_MATERIAL
 
         return {
@@ -90,15 +91,6 @@ class IngredientModel(NomenclatureModel):
                 ),
             ],
             "Пицца Маргарита": [
-                cls(
-                    "Тесто для пиццы",
-                    "Тесто дрожжевое для пиццы",
-                    semi_finished,
-                    gram,
-                    PositionType.SEMI_FINISHED,
-                    250,
-                    250,
-                ),
                 cls("Томаты", "Томаты свежие", vegetables, gram, raw, 150, 150),
                 cls(
                     "Сыр Моцарелла",

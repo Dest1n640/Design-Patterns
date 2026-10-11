@@ -20,10 +20,10 @@
 
 `convert()` создаёт данные по порядку: единицы → группы → номенклатура → рестораны → цех → склады →
 технологическая карта. Объекты создают фабричные методы `create_*` доменных моделей и возвращают
-списки, а `_by_name()` превращает каждый список в словарь с ключом по имени. Фабрикам номенклатуры
-и складов передаются уже созданные словари, поэтому ссылки (группа, единица измерения, владелец
-склада) ведут на тот же объект из коллекции, а не на копию. Модели технологической карты —
-на [диаграмме рецептов](recipes.md).
+списки, а `_by_name()` превращает каждый список в словарь с ключом по имени. Фабрикам номенклатуры,
+складов и технологической карты передаются уже созданные словари, поэтому ссылки (группа, единица
+измерения, владелец склада, единицы и группы ингредиентов рецепта) ведут на тот же объект
+из коллекции, а не на копию. Модели технологической карты — на [диаграмме рецептов](recipes.md).
 
 ```mermaid
 classDiagram
@@ -112,7 +112,7 @@ classDiagram
 
     class TechnologicalMapModel {
         +dishes: list~DishModel~
-        +create_technological_map()$ TechnologicalMapModel
+        +create_technological_map(groups, units)$ TechnologicalMapModel
     }
 
     note for TechnologicalMapModel "Подробно — на диаграмме рецептов (recipes.md)"
@@ -192,7 +192,7 @@ sequenceDiagram
         Models-->>SM: 1 цех
         SM->>Models: WarehouseModel.create_default_warehouses(restaurants, shops)
         Models-->>SM: 3 склада
-        SM->>Models: TechnologicalMapModel.create_technological_map()
+        SM->>Models: TechnologicalMapModel.create_technological_map(groups, units)
         Models-->>SM: карта «Пицца Маргарита»
         Note over SM: Каждый список → _by_name() → словарь,<br/>is_loaded = True
     else first_start == False

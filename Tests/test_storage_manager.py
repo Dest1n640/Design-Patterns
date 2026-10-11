@@ -4,6 +4,7 @@ import pytest
 
 from Src.Core.exception import ValidationException
 from Src.Logics.storage_manager import StorageManager
+from Src.Models.ingredient_model import IngredientModel
 from Src.Models.settings_model import SettingsModel
 
 COLLECTIONS = [
@@ -34,6 +35,17 @@ def _build_started_manager() -> StorageManager:
 def _by_name(items: list) -> dict:
     """Возвращает словарь элементов коллекции по имени."""
     return {item.name: item for item in items}
+
+
+def _ingredients(manager: StorageManager) -> list[IngredientModel]:
+    """Возвращает ингредиенты-сырьё всех блюд технологических карт хранилища."""
+    return [
+        item
+        for tmap in manager.technological_maps
+        for dish in tmap.dishes
+        for item in dish.ingredients
+        if isinstance(item, IngredientModel)
+    ]
 
 
 def _same_objects(left: list, right: list) -> bool:
@@ -149,15 +161,20 @@ def test_storage_manager__first_start__all_ids_are_unique():
         *(warehouse.premises for warehouse in manager.warehouses),
         *manager.technological_maps,
         *(dish for tmap in manager.technological_maps for dish in tmap.dishes),
-        *(
-            ingredient
-            for tmap in manager.technological_maps
-            for dish in tmap.dishes
-            for ingredient in dish.ingredients
-        ),
+        *_ingredients(manager),
     ]
     ids = [item.id for item in objects]
     assert len(ids) == len(set(ids))
+
+
+def test_storage_manager__first_start__ingredients_refer_to_stored_objects():
+    """Группа и единица каждого ингредиента — объекты из коллекций хранилища."""
+    manager = _build_started_manager()
+    for ingredient in _ingredients(manager):
+        assert any(ingredient.group is group for group in manager.nomenclature_groups)
+        assert any(
+            ingredient.measurement_unit is unit for unit in manager.measurement_units
+        )
 
 
 def test_storage_manager__first_start__recipe_positions_exist():
