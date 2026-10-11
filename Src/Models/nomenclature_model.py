@@ -1,3 +1,5 @@
+from typing import Self
+
 from Src.Core.named_model import NamedModel
 from Src.Core.position_type import PositionType
 from Src.Core.validation import Validation
@@ -88,3 +90,76 @@ class NomenclatureModel(NamedModel):
         return Validation.validate_string(
             value, "name", max_length=self._NAME_MAX_LENGTH
         )
+
+    @classmethod
+    def create_margherita_nomenclature(
+        cls,
+        groups: dict[str, NomenclatureGroupModel],
+        units: dict[str, MeasurementUnitModel],
+    ) -> list[Self]:
+        """Фабричный метод: создаёт номенклатуру «Пиццы Маргарита» из справочников."""
+        return [
+            cls(
+                "Мука пшеничная",
+                "Мука пшеничная высшего сорта",
+                groups["Бакалея"],
+                units["килограмм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            cls(
+                "Дрожжи сухие",
+                "Дрожжи хлебопекарные сухие",
+                groups["Бакалея"],
+                units["грамм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            cls(
+                "Соль",
+                "Соль поваренная пищевая",
+                groups["Бакалея"],
+                units["грамм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            cls(
+                "Масло оливковое",
+                "Масло оливковое Extra Virgin",
+                groups["Бакалея"],
+                units["миллилитр"],
+                PositionType.RAW_MATERIAL,
+            ),
+            cls(
+                "Сыр Моцарелла",
+                "Сыр Моцарелла для пиццы 45%",
+                groups["Молочные продукты"],
+                units["килограмм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            cls(
+                "Томаты",
+                "Томаты свежие",
+                groups["Овощи"],
+                units["килограмм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            cls(
+                "Базилик",
+                "Базилик зелёный свежий",
+                groups["Овощи"],
+                units["грамм"],
+                PositionType.RAW_MATERIAL,
+            ),
+            cls(
+                "Тесто для пиццы",
+                "Тесто дрожжевое для пиццы",
+                groups["Полуфабрикаты"],
+                units["килограмм"],
+                PositionType.SEMI_FINISHED,
+            ),
+            cls(
+                "Пицца Маргарита",
+                "Пицца Маргарита 30 см",
+                groups["Блюда"],
+                units["штука"],
+                PositionType.DISH,
+            ),
+        ]
