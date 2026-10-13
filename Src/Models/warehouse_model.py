@@ -1,3 +1,5 @@
+from typing import Self
+
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 from Src.Models.premises_model import PremisesModel
@@ -47,3 +49,32 @@ class WarehouseModel(NamedModel):
             "warehouse_owner",
             "Владелец склада указан некорректно",
         )
+
+    @classmethod
+    def create_default_warehouses(
+        cls,
+        restaurants: dict[str, RestaurantModel],
+        production_shops: dict[str, ProductionShopModel],
+    ) -> list[Self]:
+        """Фабричный метод: создаёт центральный склад цеха и склады ресторанов."""
+        return [
+            cls(
+                "Центральный склад цеха",
+                PremisesModel(
+                    "Холодильный комплекс цеха", "ул. Промышленная, 1", 420.0
+                ),
+                production_shops["Производственный цех"],
+            ),
+            cls(
+                "Склад ресторана Ромашка Центральный",
+                PremisesModel(
+                    "Складское помещение Центральный", "ул. Ленина, 12", 120.0
+                ),
+                restaurants["Ромашка Центральный"],
+            ),
+            cls(
+                "Склад ресторана Ромашка Северный",
+                PremisesModel("Складское помещение Северный", "пр. Мира, 45", 60.5),
+                restaurants["Ромашка Северный"],
+            ),
+        ]

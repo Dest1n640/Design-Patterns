@@ -83,3 +83,16 @@ class MeasurementUnitModel(NamedModel):
     def create_piece(cls) -> Self:
         """Фабричный метод: создаёт штуку."""
         return cls("штука", 1)
+
+    @classmethod
+    def create_default_units(cls) -> list[Self]:
+        """Фабричный метод: создаёт базовые единицы измерения и кратные им."""
+        gram = cls.create_gram()
+        milliliter = cls.create_milliliter()
+        return [
+            gram,
+            cls.create_kilogram(gram),
+            milliliter,
+            cls.create_liter(milliliter),
+            cls.create_piece(),
+        ]
