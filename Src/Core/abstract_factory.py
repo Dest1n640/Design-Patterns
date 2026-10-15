@@ -1,8 +1,12 @@
-from Src.Core.abstract_report import AbstractReport
-from Core.report_type import ReportType
 from abc import ABC, abstractmethod
 
-class abstract_factory(ABC):
+from Src.Core.abstract_report import AbstractReport
+from Src.Core.report_type import ReportType
 
-  @abstractmethod
-  def create(self, report_type: ReportType) -> AbstractReport:
+
+class AbstractFactory(ABC):
+    """Фабрика отчётов: по типу отчёта возвращает построитель."""
+
+    @abstractmethod
+    def create(self, report_type: ReportType) -> AbstractReport:
+        """Создаёт построитель отчёта указанного типа."""

@@ -5,10 +5,8 @@ description = "Add your description here"
 readme = "readme.md"
 requires-python = ">=3.12"
 dependencies = [
-    "connexion>=3.3.0",
     "fastapi>=0.143.0",
-    "pytest>=9.1.1",
-    "ruff>=0.16.9",
+    "uvicorn>=0.54.0",
 ]
 
 [tool.ruff]
@@ -26,4 +24,10 @@ select = [
 ignore = [
     "N818", # исключения намеренно называются с суффиксом Exception, а не Error
     "N999", # каталоги (Src/Core/Models/Tests) намеренно в CamelCase, см. CodeCases.md
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
 ]

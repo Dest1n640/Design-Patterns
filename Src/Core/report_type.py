@@ -2,5 +2,7 @@ from enum import Enum
 
 
 class ReportType(Enum):
-    TXT = 1
-    BINARY = 2
+    """Тип отчёта; значение используется в адресе API."""
+
+    TXT = "txt"
+    BINARY = "binary"

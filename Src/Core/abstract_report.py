@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from Src.Core.abstract_model import AbstractModel
-from Src.Models.report_model import ReportModel
+from Src.Dtos.report_model import ReportModel
 
 
 class AbstractReport(ABC):

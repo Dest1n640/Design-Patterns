@@ -1,9 +1,9 @@
-"""Юнит-тесты для Src.Logics.text_report.TextReport."""
+"""Юнит-тесты для Src.Logics.Reports.text_report.TextReport."""
 
 import pytest
 
 from Src.Core.exception import ValidationException
-from Src.Logics.text_report import TextReport
+from Src.Logics.Reports.text_report import TextReport
 from Src.Models.dish_model import DishModel
 
 HEADER = "Код | Наименование | Брутто | Нетто"

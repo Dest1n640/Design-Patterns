@@ -1,7 +1,7 @@
 from Src.Core.abstract_report import AbstractReport
 from Src.Core.validation import Validation
+from Src.Dtos.report_model import ReportModel
 from Src.Models.dish_model import DishModel
-from Src.Models.report_model import ReportModel
 
 
 class TextReport(AbstractReport):
