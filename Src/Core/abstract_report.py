@@ -5,6 +5,8 @@ from Src.Dtos.report_model import ReportModel
 
 
 class AbstractReport(ABC):
+    """Построитель отчёта: по исходной модели формирует результат."""
+
     @abstractmethod
     def build(self, source: AbstractModel) -> ReportModel:
-        pass
+        """Строит отчёт по исходной модели."""
