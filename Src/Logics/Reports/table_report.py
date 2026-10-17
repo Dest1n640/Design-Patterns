@@ -29,9 +29,12 @@ class TableReport(AbstractReport):
     UNIT_HEADER = ("Код", "Наименование", "Коэффициент", "Базовая единица")
 
     def build(self, source: NamedModel) -> ReportModel:
-        """Строит отчёт по сущности в формате наследника."""
+        """Строит отчёт по сущности в формате наследника: текст или байты."""
         header, rows = self._table(source)
-        return ReportModel(source.name, text=self._format(source.name, header, rows))
+        content = self._format(source.name, header, rows)
+        if isinstance(content, bytes):
+            return ReportModel(source.name, binary=content)
+        return ReportModel(source.name, text=content)
 
     @classmethod
     def _table(cls, source: NamedModel) -> tuple[Header, list[Row]]:
@@ -70,5 +73,5 @@ class TableReport(AbstractReport):
         return rows
 
     @abstractmethod
-    def _format(self, title: str, header: Header, rows: list[Row]) -> str:
-        """Оформляет шапку и строки таблицы в текст нужного формата."""
+    def _format(self, title: str, header: Header, rows: list[Row]) -> str | bytes:
+        """Оформляет шапку и строки таблицы в текст или байты нужного формата."""
