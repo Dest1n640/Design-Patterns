@@ -12,6 +12,7 @@ from Src.Logics.storage_manager import StorageManager
 settings_manager = SettingsManager()
 settings_manager.load()
 StorageManager().start(settings_manager.settings)
+report_factory = ReportFactory(settings_manager.settings)
 
 app = FastAPI()
 
@@ -24,7 +25,7 @@ def get_report(report_type: ReportType, dish_name: str) -> Response:
     if dish is None:
         raise HTTPException(404, f"Блюдо '{dish_name}' не найдено")
     try:
-        report = ReportFactory().create(report_type).build(dish)
+        report = report_factory.create(report_type).build(dish)
     except ValidationException as ex:
         raise HTTPException(400, ex.message) from ex
     if report.binary:
