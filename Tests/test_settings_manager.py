@@ -79,6 +79,23 @@ def test_settings_manager__load_default_file__first_start_matches_json(
     assert settings.first_start is settings_data["first_start"]
 
 
+def test_settings_manager__load_default_file__response_format_matches_json(
+    settings_data,
+):
+    """Формат ответа совпадает с settings.json."""
+    settings = _build_loaded_manager().settings
+    assert settings.response_format.value == settings_data["response_format"]
+
+
+def test_settings_manager__load_unknown_response_format__raises_validation_exception(
+    settings_data, tmp_path
+):
+    """Неизвестный формат ответа вызывает исключение валидации."""
+    settings_data["response_format"] = "pdf"
+    with pytest.raises(ValidationException):
+        SettingsManager().load(_write_json(tmp_path, settings_data))
+
+
 def test_settings_manager__load_without_company__raises_validation_exception(
     settings_data, tmp_path
 ):
