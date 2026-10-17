@@ -6,13 +6,24 @@ from Src.Core.exception import ValidationException
 from Src.Core.report_type import ReportType
 from Src.Logics.report_factory import ReportFactory
 from Src.Logics.Reports.binary_report import BinaryReport
+from Src.Logics.Reports.csv_report import CsvReport
+from Src.Logics.Reports.html_report import HtmlReport
+from Src.Logics.Reports.markdown_report import MarkdownReport
 from Src.Logics.Reports.text_report import TextReport
+from Src.Logics.Reports.xml_report import XmlReport
 from Src.Models.settings_model import SettingsModel
 
 
 @pytest.mark.parametrize(
     ("report_type", "expected"),
-    [(ReportType.TXT, TextReport), (ReportType.BINARY, BinaryReport)],
+    [
+        (ReportType.TXT, TextReport),
+        (ReportType.BINARY, BinaryReport),
+        (ReportType.CSV, CsvReport),
+        (ReportType.MARKDOWN, MarkdownReport),
+        (ReportType.XML, XmlReport),
+        (ReportType.HTML, HtmlReport),
+    ],
 )
 def test_report_factory__create__returns_report_for_type(report_type, expected):
     """По типу отчёта создаётся экземпляр соответствующего построителя."""

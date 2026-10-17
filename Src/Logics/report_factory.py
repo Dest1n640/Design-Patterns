@@ -4,7 +4,11 @@ from Src.Core.exception import ValidationException
 from Src.Core.report_type import ReportType
 from Src.Core.validation import Validation
 from Src.Logics.Reports.binary_report import BinaryReport
+from Src.Logics.Reports.csv_report import CsvReport
+from Src.Logics.Reports.html_report import HtmlReport
+from Src.Logics.Reports.markdown_report import MarkdownReport
 from Src.Logics.Reports.text_report import TextReport
+from Src.Logics.Reports.xml_report import XmlReport
 from Src.Models.settings_model import SettingsModel
 
 
@@ -19,6 +23,10 @@ class ReportFactory(AbstractFactory):
         self.__mapping: dict[ReportType, type[AbstractReport]] = {
             ReportType.TXT: TextReport,
             ReportType.BINARY: BinaryReport,
+            ReportType.CSV: CsvReport,
+            ReportType.MARKDOWN: MarkdownReport,
+            ReportType.XML: XmlReport,
+            ReportType.HTML: HtmlReport,
         }
 
     def create(self, report_type: ReportType) -> AbstractReport:
