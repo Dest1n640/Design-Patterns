@@ -17,19 +17,52 @@ report_factory = ReportFactory(settings_manager.settings)
 app = FastAPI()
 
 
-@app.get("/reports/{report_type}/{dish_name}")
-def get_report(report_type: ReportType, dish_name: str) -> Response:
-    """Возвращает отчёт по блюду из технологических карт: текст или байты."""
-    dishes = [d for m in StorageManager().technological_maps for d in m.dishes]
-    dish = next((d for d in dishes if d.name == dish_name), None)
-    if dish is None:
-        raise HTTPException(404, f"Блюдо '{dish_name}' не найдено")
+@app.get("/reports/{report_type}/{entity_type}/{code}")
+def get_report(report_type: ReportType, entity_type: str, code: str) -> Response:
+    """Отчёт в указанном формате по сущности и её коду."""
+    return build_response(report_type, entity_type, code)
+
+
+@app.get("/reports/{entity_type}/{code}")
+def get_default_report(entity_type: str, code: str) -> Response:
+    """Отчёт в формате из настроек (create_default) по сущности и её коду."""
+    return build_response(None, entity_type, code)
+
+
+def build_response(
+    report_type: ReportType | None, entity_type: str, code: str
+) -> Response:
+    """Ищет сущность (nomenclature, measurement_unit, recipe) и отдаёт отчёт по ней.
+
+    Без report_type формат берётся из настроек через create_default.
+    """
+    storage = StorageManager()
+    entities = {
+        "nomenclature": storage.nomenclature,
+        "measurement_unit": storage.measurement_units,
+        "recipe": storage.technological_maps,
+    }.get(entity_type, [])
+    entity = next((e for e in entities if e.id == code), None)
+    if entity is None:
+        raise HTTPException(
+            404, f"Сущность '{entity_type}' с кодом '{code}' не найдена"
+        )
+    if report_type is None:
+        report_type = settings_manager.settings.response_format
+        builder = report_factory.create_default()
+    else:
+        builder = report_factory.create(report_type)
     try:
-        report = report_factory.create(report_type).build(dish)
+        report = builder.build(entity)
     except ValidationException as ex:
         raise HTTPException(400, ex.message) from ex
     if report.binary:
-        return Response(report.binary, media_type="application/octet-stream")
+        file_name = f"{entity_type}_{code}.{report_type.value}"
+        return Response(
+            report.binary,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+        )
     return PlainTextResponse(report.text)
 
 
