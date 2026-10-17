@@ -3,7 +3,6 @@ from Src.Core.abstract_report import AbstractReport
 from Src.Core.exception import ValidationException
 from Src.Core.report_type import ReportType
 from Src.Core.validation import Validation
-from Src.Logics.Reports.binary_report import BinaryReport
 from Src.Logics.Reports.csv_report import CsvReport
 from Src.Logics.Reports.html_report import HtmlReport
 from Src.Logics.Reports.markdown_report import MarkdownReport
@@ -22,7 +21,6 @@ class ReportFactory(AbstractFactory):
         )
         self.__mapping: dict[ReportType, type[AbstractReport]] = {
             ReportType.TXT: TextReport,
-            ReportType.BINARY: BinaryReport,
             ReportType.CSV: CsvReport,
             ReportType.MARKDOWN: MarkdownReport,
             ReportType.XML: XmlReport,

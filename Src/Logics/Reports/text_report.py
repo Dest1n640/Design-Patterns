@@ -1,9 +1,9 @@
-from Src.Logics.Reports.dish_report import DishReport, Row
+from Src.Logics.Reports.table_report import Header, Row, TableReport
 
 
-class TextReport(DishReport):
-    """Текстовый отчёт по блюду: состав с весом брутто и нетто."""
+class TextReport(TableReport):
+    """Текстовый отчёт: строки таблицы с разделителем « | »."""
 
-    def _format(self, title: str, rows: list[Row]) -> str:
-        """Оформляет состав строками с разделителем « | »."""
-        return "\n".join(" | ".join(map(str, row)) for row in [self.HEADER, *rows])
+    def _format(self, title: str, header: Header, rows: list[Row]) -> str:
+        """Оформляет таблицу строками с разделителем « | »."""
+        return "\n".join(" | ".join(map(str, row)) for row in [header, *rows])

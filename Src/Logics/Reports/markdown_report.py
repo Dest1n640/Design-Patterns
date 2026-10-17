@@ -1,16 +1,16 @@
-from Src.Logics.Reports.dish_report import DishReport, Row
+from Src.Logics.Reports.table_report import Header, Row, TableReport
 
 
-class MarkdownReport(DishReport):
-    """Markdown-отчёт по блюду: заголовок и таблица состава."""
+class MarkdownReport(TableReport):
+    """Markdown-отчёт: заголовок с именем сущности и таблица."""
 
-    def _format(self, title: str, rows: list[Row]) -> str:
-        """Оформляет состав в Markdown-таблицу под заголовком с именем блюда."""
+    def _format(self, title: str, header: Header, rows: list[Row]) -> str:
+        """Оформляет таблицу в Markdown под заголовком с именем сущности."""
         lines = [
             f"# {title}",
             "",
-            self._line(self.HEADER),
-            self._line(["---"] * len(self.HEADER)),
+            self._line(header),
+            self._line(["---"] * len(header)),
         ]
         lines += [self._line(row) for row in rows]
         return "\n".join(lines)

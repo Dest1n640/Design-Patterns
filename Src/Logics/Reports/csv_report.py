@@ -1,16 +1,16 @@
 import csv
 import io
 
-from Src.Logics.Reports.dish_report import DishReport, Row
+from Src.Logics.Reports.table_report import Header, Row, TableReport
 
 
-class CsvReport(DishReport):
-    """CSV-отчёт по блюду: состав с весом брутто и нетто."""
+class CsvReport(TableReport):
+    """CSV-отчёт: таблица с заголовком."""
 
-    def _format(self, title: str, rows: list[Row]) -> str:
-        """Оформляет состав в CSV с заголовком."""
+    def _format(self, title: str, header: Header, rows: list[Row]) -> str:
+        """Оформляет таблицу в CSV с заголовком."""
         buffer = io.StringIO()
         writer = csv.writer(buffer, lineterminator="\n")
-        writer.writerow(self.HEADER)
+        writer.writerow(header)
         writer.writerows(rows)
         return buffer.getvalue()

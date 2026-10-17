@@ -1,17 +1,17 @@
 from html import escape
 
-from Src.Logics.Reports.dish_report import DishReport, Row
+from Src.Logics.Reports.table_report import Header, Row, TableReport
 
 
-class HtmlReport(DishReport):
-    """HTML-отчёт по блюду: таблица состава с названием блюда."""
+class HtmlReport(TableReport):
+    """HTML-отчёт: таблица с именем сущности в заголовке."""
 
-    def _format(self, title: str, rows: list[Row]) -> str:
-        """Оформляет состав в HTML-таблицу; значения экранируются."""
+    def _format(self, title: str, header: Header, rows: list[Row]) -> str:
+        """Оформляет таблицу в HTML; значения экранируются."""
         lines = [
             "<table>",
             f"<caption>{escape(title)}</caption>",
-            self._row(self.HEADER, "th"),
+            self._row(header, "th"),
         ]
         lines += [self._row(row, "td") for row in rows]
         lines.append("</table>")

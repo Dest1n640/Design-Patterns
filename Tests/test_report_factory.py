@@ -5,7 +5,6 @@ import pytest
 from Src.Core.exception import ValidationException
 from Src.Core.report_type import ReportType
 from Src.Logics.report_factory import ReportFactory
-from Src.Logics.Reports.binary_report import BinaryReport
 from Src.Logics.Reports.csv_report import CsvReport
 from Src.Logics.Reports.html_report import HtmlReport
 from Src.Logics.Reports.markdown_report import MarkdownReport
@@ -18,7 +17,6 @@ from Src.Models.settings_model import SettingsModel
     ("report_type", "expected"),
     [
         (ReportType.TXT, TextReport),
-        (ReportType.BINARY, BinaryReport),
         (ReportType.CSV, CsvReport),
         (ReportType.MARKDOWN, MarkdownReport),
         (ReportType.XML, XmlReport),
@@ -38,7 +36,7 @@ def test_report_factory__create__not_a_report_type_raises():
 
 @pytest.mark.parametrize(
     ("response_format", "expected"),
-    [(ReportType.TXT, TextReport), (ReportType.BINARY, BinaryReport)],
+    [(ReportType.TXT, TextReport), (ReportType.CSV, CsvReport)],
 )
 def test_report_factory__create_default__uses_settings_format(
     response_format, expected
