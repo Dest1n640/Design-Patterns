@@ -6,3 +6,7 @@ class ReportType(Enum):
 
     TXT = "txt"
     BINARY = "binary"
+    CSV = "csv"
+    MARKDOWN = "markdown"
+    XML = "xml"
+    HTML = "html"
