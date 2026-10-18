@@ -1,21 +1,23 @@
-from Src.Logics.Reports.table_report import Header, Row, TableReport
+from Src.Dtos.table_dto import TableDto
+from Src.Logics.Reports.table_report import TableReport
 
 
 class MarkdownReport(TableReport):
     """Markdown-отчёт: заголовок с именем сущности и таблица в виде байтов файла."""
 
-    def _format(self, title: str, header: Header, rows: list[Row]) -> bytes:
+    def _format(self, table: TableDto) -> bytes:
         """Оформляет таблицу в Markdown под заголовком с именем сущности."""
         lines = [
-            f"# {title}",
+            f"# {table.title}",
             "",
-            self._line(header),
-            self._line(["---"] * len(header)),
+            self._line(table.header),
+            self._line(["---"] * len(table.header)),
         ]
-        lines += [self._line(row) for row in rows]
+        lines += [self._line(row) for row in table.rows]
         return "\n".join(lines).encode("utf-8")
 
     @staticmethod
-    def _line(cells: tuple | list) -> str:
-        """Оформляет строку таблицы; символ | в значении экранируется."""
-        return "| " + " | ".join(str(c).replace("|", r"\|") for c in cells) + " |"
+    def _line(cells: list[str]) -> str:
+        """Оформляет строку таблицы; | экранируется, перенос строки — <br>."""
+        cells = [c.replace("|", r"\|").replace("\n", "<br>") for c in cells]
+        return "| " + " | ".join(cells) + " |"

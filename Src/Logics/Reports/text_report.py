@@ -1,9 +1,13 @@
-from Src.Logics.Reports.table_report import Header, Row, TableReport
+from Src.Dtos.table_dto import TableDto
+from Src.Logics.Reports.table_report import TableReport
 
 
 class TextReport(TableReport):
     """Текстовый отчёт: строки таблицы с разделителем « | »."""
 
-    def _format(self, title: str, header: Header, rows: list[Row]) -> str:
-        """Оформляет таблицу строками с разделителем « | »."""
-        return "\n".join(" | ".join(map(str, row)) for row in [header, *rows])
+    def _format(self, table: TableDto) -> str:
+        """Оформляет таблицу строками « | »; переносы в ячейке заменяются пробелом."""
+        return "\n".join(
+            " | ".join(c.replace("\n", " ") for c in row)
+            for row in [table.header, *table.rows]
+        )

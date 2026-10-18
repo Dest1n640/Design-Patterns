@@ -11,7 +11,8 @@ from Src.Logics.storage_manager import StorageManager
 # Запуск: читает settings.json и формирует данные хранилища.
 settings_manager = SettingsManager()
 settings_manager.load()
-StorageManager().start(settings_manager.settings)
+storage_manager = StorageManager()
+storage_manager.start(settings_manager.settings)
 report_factory = ReportFactory(settings_manager.settings)
 
 app = FastAPI()
@@ -36,11 +37,10 @@ def build_response(
 
     Без report_type формат берётся из настроек через create_default.
     """
-    storage = StorageManager()
     entities = {
-        "nomenclature": storage.nomenclature,
-        "measurement_unit": storage.measurement_units,
-        "recipe": storage.technological_maps,
+        "nomenclature": storage_manager.nomenclature,
+        "measurement_unit": storage_manager.measurement_units,
+        "recipe": storage_manager.technological_maps,
     }.get(entity_type, [])
     entity = next((e for e in entities if e.id == code), None)
     if entity is None:

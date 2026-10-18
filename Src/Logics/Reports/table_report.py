@@ -1,77 +1,57 @@
 from abc import abstractmethod
+from enum import Enum
 
 from Src.Core.abstract_report import AbstractReport
-from Src.Core.exception import ValidationException
+from Src.Core.common import Common
 from Src.Core.named_model import NamedModel
+from Src.Core.validation import Validation
 from Src.Dtos.report_model import ReportModel
-from Src.Models.dish_model import DishModel
-from Src.Models.measurement_unit_model import MeasurementUnitModel
-from Src.Models.nomenclature_model import NomenclatureModel
-from Src.Models.technological_map_model import TechnologicalMapModel
-
-type Header = tuple[str, ...]
-type Row = tuple[object, ...]
+from Src.Dtos.table_dto import TableDto
 
 
 class TableReport(AbstractReport):
-    """Основа табличных отчётов: строки сущности оформляются в формате наследника."""
-
-    DISH_HEADER = ("Код", "Наименование", "Брутто", "Нетто")
-    RECIPE_HEADER = ("Блюдо", *DISH_HEADER)
-    NOMENCLATURE_HEADER = (
-        "Код",
-        "Наименование",
-        "Полное наименование",
-        "Группа",
-        "Единица измерения",
-        "Тип",
-    )
-    UNIT_HEADER = ("Код", "Наименование", "Коэффициент", "Базовая единица")
+    """Основа табличных отчётов: таблица сущности собирается рефлексией."""
 
     def build(self, source: NamedModel) -> ReportModel:
         """Строит отчёт по сущности в формате наследника: текст или байты."""
-        header, rows = self._table(source)
-        content = self._format(source.name, header, rows)
+        source = Validation.validate_instance(
+            source, NamedModel, "source", "Источник отчёта должен быть сущностью"
+        )
+        content = self._format(self._table(source))
         if isinstance(content, bytes):
             return ReportModel(source.name, binary=content)
         return ReportModel(source.name, text=content)
 
     @classmethod
-    def _table(cls, source: NamedModel) -> tuple[Header, list[Row]]:
-        """Возвращает шапку и строки таблицы для сущности поддерживаемого типа."""
-        if isinstance(source, TechnologicalMapModel):
-            rows = [(d.name, *row) for d in source.dishes for row in cls._dish_rows(d)]
-            return cls.RECIPE_HEADER, rows
-        if isinstance(source, DishModel):
-            return cls.DISH_HEADER, cls._dish_rows(source)
-        if isinstance(source, NomenclatureModel):
-            row = (
-                source.id,
-                source.name,
-                source.full_name,
-                source.group.name,
-                source.measurement_unit.name,
-                source.position_type.value,
-            )
-            return cls.NOMENCLATURE_HEADER, [row]
-        if isinstance(source, MeasurementUnitModel):
-            base_unit = source.base_unit.name if source.base_unit else ""
-            row = (source.id, source.name, source.coefficient, base_unit)
-            return cls.UNIT_HEADER, [row]
-        raise ValidationException("source", "Отчёт для такого источника не поддержан")
+    def _table(cls, source: NamedModel) -> TableDto:
+        """Собирает таблицу: колонки — свойства моделей, строки — сами модели."""
+        items = cls._items(source)
+        header = []
+        for item in items:
+            header += [f for f in Common.get_fields(item, True) if f not in header]
+        rows = [[cls._cell(getattr(item, f, None)) for f in header] for item in items]
+        return TableDto(source.name, header, rows)
 
     @staticmethod
-    def _dish_rows(dish: DishModel) -> list[Row]:
-        """Возвращает строки состава блюда; вес вложенного блюда считается суммарно."""
-        rows = []
-        for item in dish.ingredients:
-            if isinstance(item, DishModel):
-                brutto, netto = item.calculate_brutto(), item.calculate_netto()
-            else:
-                brutto, netto = item.brutto, item.netto
-            rows.append((item.id, item.name, brutto, netto))
-        return rows
+    def _items(source: NamedModel) -> list:
+        """Возвращает элементы первого непустого списка, иначе саму сущность."""
+        for field in Common.get_fields(source):
+            value = getattr(source, field)
+            if isinstance(value, list) and value:
+                return value
+        return [source]
+
+    @staticmethod
+    def _cell(value: object) -> str:
+        """Приводит значение свойства к строке: модель — имя, enum — значение."""
+        if value is None:
+            return ""
+        if isinstance(value, NamedModel):
+            return value.name
+        if isinstance(value, Enum):
+            return str(value.value)
+        return str(value)
 
     @abstractmethod
-    def _format(self, title: str, header: Header, rows: list[Row]) -> str | bytes:
-        """Оформляет шапку и строки таблицы в текст или байты нужного формата."""
+    def _format(self, table: TableDto) -> str | bytes:
+        """Оформляет таблицу в текст или байты нужного формата."""

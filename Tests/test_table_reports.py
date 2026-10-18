@@ -7,32 +7,43 @@ from Src.Logics.Reports.csv_report import CsvReport
 from Src.Logics.Reports.html_report import HtmlReport
 from Src.Logics.Reports.markdown_report import MarkdownReport
 from Src.Logics.Reports.xml_report import XmlReport
-from Src.Models.dish_model import DishModel
+from Src.Models.technological_map_model import TechnologicalMapModel
 
 REPORTS = [CsvReport, MarkdownReport, XmlReport, HtmlReport]
 
 
 @pytest.mark.parametrize(
-    ("report", "expected_row"),
+    ("report", "expected"),
     [
-        (CsvReport, "{id},Мука пшеничная,150,150"),
-        (MarkdownReport, "| {id} | Мука пшеничная | 150 | 150 |"),
-        (XmlReport, '<field name="Наименование">Мука пшеничная</field>'),
-        (HtmlReport, "<td>{id}</td><td>Мука пшеничная</td><td>150</td><td>150</td>"),
+        (CsvReport, "1000,грамм,1000,{id},килограмм"),
+        (MarkdownReport, "| 1000 | грамм | 1000 | {id} | килограмм |"),
+        (XmlReport, '<field name="base_unit">грамм</field>'),
+        (
+            HtmlReport,
+            "<td>1000</td><td>грамм</td><td>1000</td><td>{id}</td><td>килограмм</td>",
+        ),
     ],
 )
-def test_table_report__build__contains_ingredient_row(
-    report, expected_row, groups, units
-):
-    """Отчёт содержит строку ингредиента в своём формате; имя отчёта — имя блюда."""
-    dough, _ = DishModel.create_margherita_dishes(groups, units)
-    flour = dough.ingredients[0]
+def test_table_report__measurement_unit__row_in_format(report, expected, units):
+    """Отчёт содержит строку единицы измерения в своём формате; имя — имя сущности."""
+    kilogram = units["килограмм"]
 
-    result = report().build(dough)
+    result = report().build(kilogram)
     content = result.text or result.binary.decode("utf-8-sig")
 
-    assert result.name == dough.name
-    assert expected_row.format(id=flour.id) in content
+    assert result.name == "килограмм"
+    assert expected.format(id=kilogram.id) in content
+
+
+def test_markdown_report__recipe__multiline_cell_kept_in_table(groups, units):
+    """Многострочный рецепт не разрывает Markdown-таблицу: переносы — <br>."""
+    recipe = TechnologicalMapModel.create_technological_map(groups, units)
+
+    lines = MarkdownReport().build(recipe).binary.decode("utf-8").split("\n")
+
+    # Заголовок, пустая строка, шапка, разделитель и строка на каждое блюдо.
+    assert len(lines) == 4 + len(recipe.dishes)
+    assert "<br>2. " in lines[4]
 
 
 @pytest.mark.parametrize(
@@ -44,20 +55,16 @@ def test_table_report__build__contains_ingredient_row(
         (HtmlReport, False),
     ],
 )
-def test_table_report__build__csv_markdown_binary_others_text(
-    report, is_binary, groups, units
-):
+def test_table_report__build__csv_markdown_binary_others_text(report, is_binary, units):
     """CSV и Markdown отдают байты файла, XML и HTML — текст."""
-    dough, _ = DishModel.create_margherita_dishes(groups, units)
-
-    result = report().build(dough)
+    result = report().build(units["грамм"])
 
     assert bool(result.binary) is is_binary
     assert bool(result.text) is not is_binary
 
 
 @pytest.mark.parametrize("report", REPORTS)
-def test_table_report__build__not_supported_source_raises(report):
-    """Источник неподдерживаемого типа вызывает исключение валидации."""
+def test_table_report__build__not_a_model_raises(report):
+    """Источник, не являющийся сущностью, вызывает исключение валидации."""
     with pytest.raises(ValidationException):
-        report().build("не блюдо")
+        report().build("не модель")
