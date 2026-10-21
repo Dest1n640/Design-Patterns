@@ -1,6 +1,8 @@
 from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
+from Src.Core.exception import ValidationException
+from Src.Core.report_type import ReportType
 from Src.Core.validation import Validation
 from Src.Models.organization_model import OrganizationModel
 from Src.Models.settings_model import SettingsModel
@@ -31,7 +33,7 @@ class SettingsManager(AbstractManager):
         return self._settings
 
     def convert(self) -> bool:
-        """Собирает модель настроек из раздела company и флага first_start."""
+        """Собирает модель настроек из company, first_start и response_format."""
         data = Validation.validate_instance(
             self._data, dict, "settings", "Настройки должны быть json-объектом"
         )
@@ -53,6 +55,12 @@ class SettingsManager(AbstractManager):
         settings.boss_name = company.get("boss_name")
         settings.accountant_name = company.get("accountant_name")
         settings.first_start = data.get("first_start")
+        try:
+            settings.response_format = ReportType(data.get("response_format"))
+        except ValueError as ex:
+            raise ValidationException(
+                "response_format", "Неизвестный формат ответа"
+            ) from ex
 
         self._settings = settings
         return True

@@ -1,5 +1,6 @@
 {
   "first_start": true,
+  "response_format": "txt",
   "company": {
     "name": "Ромашка",
     "legal_form": "ООО",

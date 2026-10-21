@@ -1,4 +1,5 @@
 from Src.Core.abstract_model import AbstractModel
+from Src.Core.report_type import ReportType
 from Src.Core.validation import Validation
 from Src.Models.organization_model import OrganizationModel
 
@@ -13,6 +14,7 @@ class SettingsModel(AbstractModel):
         self.__boss_name = ""
         self.__accountant_name = ""
         self.__first_start = False
+        self.__response_format: ReportType | None = None
 
     @property
     def organization(self) -> OrganizationModel | None:
@@ -33,6 +35,11 @@ class SettingsModel(AbstractModel):
     def first_start(self) -> bool:
         """Возвращает признак первого запуска приложения."""
         return self.__first_start
+
+    @property
+    def response_format(self) -> ReportType | None:
+        """Возвращает формат ответа из настроек; None, пока настройки не загружены."""
+        return self.__response_format
 
     @organization.setter
     def organization(self, value: OrganizationModel) -> None:
@@ -56,4 +63,11 @@ class SettingsModel(AbstractModel):
         """Устанавливает признак первого запуска приложения."""
         self.__first_start = Validation.validate_instance(
             value, bool, "first_start", "Признак первого запуска должен быть bool"
+        )
+
+    @response_format.setter
+    def response_format(self, value: ReportType) -> None:
+        """Устанавливает формат ответа (тип отчёта) по умолчанию."""
+        self.__response_format = Validation.validate_instance(
+            value, ReportType, "response_format", "Формат ответа указан некорректно"
         )
