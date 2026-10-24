@@ -40,7 +40,7 @@ def flour(groups, units) -> NomenclatureModel:
     )
 
 
-def test_basic_convertor__numbers_and_strings(units):
+def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
     """Числа и строки попадают в словарь, ссылка на базовую единицу — нет."""
     kilogram = units["килограмм"]
 
@@ -52,7 +52,7 @@ def test_basic_convertor__numbers_and_strings(units):
     }
 
 
-def test_basic_convertor__composite_fields_skipped(flour):
+def test_basic_convertor__composite_fields__skipped(flour):
     """Ссылки на сущности и enum пропускаются."""
     assert BasicConvertor().convert(flour) == {
         "full_name": "Мука пшеничная",
@@ -61,7 +61,7 @@ def test_basic_convertor__composite_fields_skipped(flour):
     }
 
 
-def test_datetime_convertor__iso_string():
+def test_datetime_convertor__date_field__iso_string():
     """Дата попадает в словарь строкой ISO 8601, остальные свойства — нет."""
     assert DatetimeConvertor().convert(DatedStub()) == {
         "created": "2026-10-21T12:30:00"
@@ -73,7 +73,7 @@ def test_datetime_convertor__no_dates__empty(flour):
     assert DatetimeConvertor().convert(flour) == {}
 
 
-def test_reference_convertor__ids_of_references(flour, groups, units):
+def test_reference_convertor__references__ids(flour, groups, units):
     """Ссылки на сущности попадают в словарь в виде их id."""
     assert ReferenceConvertor().convert(flour) == {
         "group": groups["Бакалея"].id,
@@ -81,7 +81,7 @@ def test_reference_convertor__ids_of_references(flour, groups, units):
     }
 
 
-def test_reference_convertor__none_reference_skipped(units):
+def test_reference_convertor__none_reference__skipped(units):
     """Пустая ссылка (base_unit=None) в словарь не попадает."""
     assert ReferenceConvertor().convert(units["килограмм"]) == {
         "base_unit": units["грамм"].id
