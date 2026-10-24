@@ -17,15 +17,17 @@ class ConvertFactory:
         ]
 
     def convert(self, source: object) -> dict | list:
-        """Превращает объект в словарь, список — в список словарей."""
+        """Превращает объект в словарь; списки и словари обходит рекурсивно."""
         if isinstance(source, list):
             return [self.convert(item) for item in source]
+        if isinstance(source, dict):
+            return {key: self.convert(item) for key, item in source.items()}
         result = {}
         for convertor in self.__convertors:
             for field, value in convertor.convert(source).items():
                 result[field] = value
         for field in Common.get_fields(source):
             value = getattr(source, field)
-            if isinstance(value, list):
+            if isinstance(value, list | dict):
                 result[field] = self.convert(value)
         return result

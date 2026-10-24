@@ -126,6 +126,15 @@ def test_convert_factory__list__list_of_dicts(units):
     assert [item["name"] for item in result] == list(units)
 
 
+def test_convert_factory__dict__dict_of_dicts(units):
+    """Словарь объектов превращается в словарь словарей с теми же ключами."""
+    result = ConvertFactory().convert(units)
+
+    assert {key: item["name"] for key, item in result.items()} == {
+        key: unit.name for key, unit in units.items()
+    }
+
+
 def test_convert_factory__composite__structure_kept(groups, units):
     """Вложенные списки сохраняют структуру: карта → блюда → состав."""
     recipe = TechnologicalMapModel.create_technological_map(groups, units)
