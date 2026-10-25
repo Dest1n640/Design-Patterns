@@ -1,8 +1,12 @@
+import json
 from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
+from Src.Core.common import Common
+from Src.Core.exception import ApplicationException
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
+from Src.Logics.convert_factory import ConvertFactory
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 from Src.Models.nomenclature_model import NomenclatureModel
@@ -121,6 +125,24 @@ class StorageManager(AbstractManager):
             ]
         )
         return True
+
+    def save(self, file_name: str) -> None:
+        """Выгружает все справочники хранилища в json-файл через ConvertFactory."""
+        file_name = Validation.validate_string(file_name, "file_name")
+        factory = ConvertFactory()
+        # Справочники — это свойства-списки; settings и is_loaded не выгружаются.
+        data = {
+            field: factory.convert(getattr(self, field))
+            for field in Common.get_fields(self)
+            if isinstance(getattr(self, field), list)
+        }
+        try:
+            with open(file_name, "w", encoding="utf-8") as file:
+                json.dump(data, file, ensure_ascii=False, indent=2)
+        except OSError as ex:
+            raise ApplicationException(
+                f"Не удалось записать файл '{file_name}'"
+            ) from ex
 
     @staticmethod
     def _by_name[T: NamedModel](models: list[T]) -> dict[str, T]:

@@ -1,5 +1,7 @@
 """Юнит-тесты для Src.Logics.storage_manager.StorageManager."""
 
+import json
+
 import pytest
 
 from Src.Core.exception import ValidationException
@@ -201,3 +203,16 @@ def test_storage_manager__first_start__technological_map_is_margherita():
         "Тесто для пиццы",
         "Пицца Маргарита",
     ]
+
+
+def test_storage_manager__save__all_collections_in_json(tmp_path):
+    """Выгрузка пишет в json все справочники, ссылки — в виде id."""
+    manager = _build_started_manager()
+    file_name = tmp_path / "storage.json"
+
+    manager.save(str(file_name))
+
+    data = json.loads(file_name.read_text(encoding="utf-8"))
+    assert set(data) == set(COLLECTIONS)
+    units = {unit["name"]: unit for unit in data["measurement_units"]}
+    assert units["килограмм"]["base_unit"] == units["грамм"]["id"]
