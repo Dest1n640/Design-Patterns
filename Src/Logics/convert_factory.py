@@ -2,6 +2,7 @@ from Src.Core.abstract_convertor import AbstractConvertor
 from Src.Core.common import Common
 from Src.Logics.Convertors.basic_convertor import BasicConvertor
 from Src.Logics.Convertors.datetime_convertor import DatetimeConvertor
+from Src.Logics.Convertors.enum_convertor import EnumConvertor
 from Src.Logics.Convertors.reference_convertor import ReferenceConvertor
 
 
@@ -9,10 +10,11 @@ class ConvertFactory:
     """Фабрика конверторов: собирает словари объекта из конверторов по типам полей."""
 
     def __init__(self) -> None:
-        """Конструктор: регистрирует конверторы простых типов, дат и ссылок."""
+        """Конструктор: регистрирует конверторы простых типов, дат, Enum и ссылок."""
         self.__convertors: list[AbstractConvertor] = [
             BasicConvertor(),
             DatetimeConvertor(),
+            EnumConvertor(),
             ReferenceConvertor(self.convert),
         ]
 

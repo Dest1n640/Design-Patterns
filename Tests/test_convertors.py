@@ -9,6 +9,7 @@ from Src.Core.position_type import PositionType
 from Src.Logics.convert_factory import ConvertFactory
 from Src.Logics.Convertors.basic_convertor import BasicConvertor
 from Src.Logics.Convertors.datetime_convertor import DatetimeConvertor
+from Src.Logics.Convertors.enum_convertor import EnumConvertor
 from Src.Logics.Convertors.reference_convertor import ReferenceConvertor
 from Src.Models.nomenclature_model import NomenclatureModel
 from Src.Models.technological_map_model import TechnologicalMapModel
@@ -73,6 +74,16 @@ def test_datetime_convertor__no_dates__empty(flour):
     assert DatetimeConvertor().convert(flour) == {}
 
 
+def test_enum_convertor__enum_field__value(flour):
+    """Enum попадает в словарь значением элемента, остальные свойства — нет."""
+    assert EnumConvertor().convert(flour) == {"position_type": "raw_material"}
+
+
+def test_enum_convertor__no_enums__empty(units):
+    """У модели без Enum получается пустой словарь."""
+    assert EnumConvertor().convert(units["килограмм"]) == {}
+
+
 def test_reference_convertor__references__nested_dicts(flour, groups, units):
     """Ссылки на сущности вкладываются в словарь целиком, со всеми полями."""
     factory = ConvertFactory()
@@ -95,6 +106,7 @@ def test_reference_convertor__none_reference__skipped(units):
     [
         BasicConvertor(),
         DatetimeConvertor(),
+        EnumConvertor(),
         ReferenceConvertor(ConvertFactory().convert),
     ],
 )
@@ -170,6 +182,7 @@ def test_convert_factory__composite__structure_kept(groups, units):
         "measurement_unit": factory.convert(units["грамм"]),
         "name": "Мука пшеничная",
         "netto": 150,
+        "position_type": "raw_material",
     }
 
 
