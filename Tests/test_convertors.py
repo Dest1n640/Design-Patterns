@@ -43,9 +43,14 @@ def flour(groups, units) -> NomenclatureModel:
 
 def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
     """Числа и строки попадают в словарь, ссылка на базовую единицу — нет."""
+    # Подготовка
     kilogram = units["килограмм"]
 
-    assert BasicConvertor().convert(kilogram) == {
+    # Действие
+    result = BasicConvertor().convert(kilogram)
+
+    # Проверки
+    assert result == {
         "base_coefficient": 1000,
         "coefficient": 1000,
         "id": kilogram.id,
@@ -55,7 +60,11 @@ def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
 
 def test_basic_convertor__composite_fields__skipped(flour):
     """Ссылки на сущности и enum пропускаются."""
-    assert BasicConvertor().convert(flour) == {
+    # Действие
+    result = BasicConvertor().convert(flour)
+
+    # Проверки
+    assert result == {
         "full_name": "Мука пшеничная",
         "id": flour.id,
         "name": "Мука",
@@ -64,31 +73,51 @@ def test_basic_convertor__composite_fields__skipped(flour):
 
 def test_datetime_convertor__date_field__iso_string():
     """Дата попадает в словарь строкой ISO 8601, остальные свойства — нет."""
-    assert DatetimeConvertor().convert(DatedStub()) == {
-        "created": "2026-10-21T12:30:00"
-    }
+    # Действие
+    result = DatetimeConvertor().convert(DatedStub())
+
+    # Проверки
+    assert result == {"created": "2026-10-21T12:30:00"}
 
 
 def test_datetime_convertor__no_dates__empty(flour):
     """У модели без дат получается пустой словарь."""
-    assert DatetimeConvertor().convert(flour) == {}
+    # Действие
+    result = DatetimeConvertor().convert(flour)
+
+    # Проверки
+    assert result == {}
 
 
 def test_enum_convertor__enum_field__value(flour):
     """Enum попадает в словарь значением элемента, остальные свойства — нет."""
-    assert EnumConvertor().convert(flour) == {"position_type": "raw_material"}
+    # Действие
+    result = EnumConvertor().convert(flour)
+
+    # Проверки
+    assert result == {"position_type": "raw_material"}
 
 
 def test_enum_convertor__no_enums__empty(units):
     """У модели без Enum получается пустой словарь."""
-    assert EnumConvertor().convert(units["килограмм"]) == {}
+    # Действие
+    result = EnumConvertor().convert(units["килограмм"])
+
+    # Проверки
+    assert result == {}
 
 
 def test_reference_convertor__references__nested_dicts(flour, groups, units):
     """Ссылки на сущности вкладываются в словарь целиком, со всеми полями."""
+    # Подготовка
     factory = ConvertFactory()
+    convertor = ReferenceConvertor(factory.convert)
 
-    assert ReferenceConvertor(factory.convert).convert(flour) == {
+    # Действие
+    result = convertor.convert(flour)
+
+    # Проверки
+    assert result == {
         "group": factory.convert(groups["Бакалея"]),
         "measurement_unit": factory.convert(units["килограмм"]),
     }
@@ -96,9 +125,14 @@ def test_reference_convertor__references__nested_dicts(flour, groups, units):
 
 def test_reference_convertor__none_reference__skipped(units):
     """Пустая ссылка (base_unit=None) в словарь не попадает."""
+    # Подготовка
     convertor = ReferenceConvertor(ConvertFactory().convert)
 
-    assert convertor.convert(units["грамм"]) == {}
+    # Действие
+    result = convertor.convert(units["грамм"])
+
+    # Проверки
+    assert result == {}
 
 
 @pytest.mark.parametrize(
@@ -112,15 +146,21 @@ def test_reference_convertor__none_reference__skipped(units):
 )
 def test_convertor__none__raises(convertor):
     """None вместо объекта вызывает исключение валидации."""
+    # Действие и проверки
     with pytest.raises(ValidationException):
         convertor.convert(None)
 
 
 def test_convert_factory__model__all_convertors_merged(units):
     """Словарь модели объединяет тип, простые поля и вложенные ссылки."""
+    # Подготовка
     kilogram = units["килограмм"]
 
-    assert ConvertFactory().convert(kilogram) == {
+    # Действие
+    result = ConvertFactory().convert(kilogram)
+
+    # Проверки
+    assert result == {
         "type": "MeasurementUnitModel",
         "base_coefficient": 1000,
         "base_unit": {
@@ -138,7 +178,11 @@ def test_convert_factory__model__all_convertors_merged(units):
 
 def test_convert_factory__datetime__merged():
     """Дата попадает в общий словарь вместе с простыми полями."""
-    assert ConvertFactory().convert(DatedStub()) == {
+    # Действие
+    result = ConvertFactory().convert(DatedStub())
+
+    # Проверки
+    assert result == {
         "type": "DatedStub",
         "created": "2026-10-21T12:30:00",
         "name": "заглушка",
@@ -147,15 +191,19 @@ def test_convert_factory__datetime__merged():
 
 def test_convert_factory__list__list_of_dicts(units):
     """Список объектов превращается в список словарей в том же порядке."""
+    # Действие
     result = ConvertFactory().convert(list(units.values()))
 
+    # Проверки
     assert [item["name"] for item in result] == list(units)
 
 
 def test_convert_factory__dict__dict_of_dicts(units):
     """Словарь объектов превращается в словарь словарей с теми же ключами."""
+    # Действие
     result = ConvertFactory().convert(units)
 
+    # Проверки
     assert {key: item["name"] for key, item in result.items()} == {
         key: unit.name for key, unit in units.items()
     }
@@ -163,12 +211,14 @@ def test_convert_factory__dict__dict_of_dicts(units):
 
 def test_convert_factory__composite__structure_kept(groups, units):
     """Вложенные списки сохраняют структуру: карта → блюда → состав."""
+    # Подготовка
     recipe = TechnologicalMapModel.create_technological_map(groups, units)
-
     factory = ConvertFactory()
 
+    # Действие
     result = factory.convert(recipe)
 
+    # Проверки
     assert set(result) == {"type", "dishes", "id", "name"}
     dough, pizza = result["dishes"]
     assert set(dough) == {"type", "id", "ingredients", "name", "recipe"}
@@ -188,5 +238,6 @@ def test_convert_factory__composite__structure_kept(groups, units):
 
 def test_convert_factory__none__raises():
     """None вместо объекта вызывает исключение валидации."""
+    # Действие и проверки
     with pytest.raises(ValidationException):
         ConvertFactory().convert(None)
