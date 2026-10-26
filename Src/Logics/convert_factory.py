@@ -13,7 +13,7 @@ class ConvertFactory:
         self.__convertors: list[AbstractConvertor] = [
             BasicConvertor(),
             DatetimeConvertor(),
-            ReferenceConvertor(),
+            ReferenceConvertor(self.convert),
         ]
 
     def convert(self, source: object) -> dict | list:
@@ -22,7 +22,8 @@ class ConvertFactory:
             return [self.convert(item) for item in source]
         if isinstance(source, dict):
             return {key: self.convert(item) for key, item in source.items()}
-        result = {}
+        # Имя класса нужно при загрузке: по нему выбирается, какую модель создать.
+        result = {"type": type(source).__name__}
         for convertor in self.__convertors:
             for field, value in convertor.convert(source).items():
                 result[field] = value

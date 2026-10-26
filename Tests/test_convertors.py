@@ -73,24 +73,30 @@ def test_datetime_convertor__no_dates__empty(flour):
     assert DatetimeConvertor().convert(flour) == {}
 
 
-def test_reference_convertor__references__ids(flour, groups, units):
-    """Ссылки на сущности попадают в словарь в виде их id."""
-    assert ReferenceConvertor().convert(flour) == {
-        "group": groups["Бакалея"].id,
-        "measurement_unit": units["килограмм"].id,
+def test_reference_convertor__references__nested_dicts(flour, groups, units):
+    """Ссылки на сущности вкладываются в словарь целиком, со всеми полями."""
+    factory = ConvertFactory()
+
+    assert ReferenceConvertor(factory.convert).convert(flour) == {
+        "group": factory.convert(groups["Бакалея"]),
+        "measurement_unit": factory.convert(units["килограмм"]),
     }
 
 
 def test_reference_convertor__none_reference__skipped(units):
     """Пустая ссылка (base_unit=None) в словарь не попадает."""
-    assert ReferenceConvertor().convert(units["килограмм"]) == {
-        "base_unit": units["грамм"].id
-    }
-    assert ReferenceConvertor().convert(units["грамм"]) == {}
+    convertor = ReferenceConvertor(ConvertFactory().convert)
+
+    assert convertor.convert(units["грамм"]) == {}
 
 
 @pytest.mark.parametrize(
-    "convertor", [BasicConvertor(), DatetimeConvertor(), ReferenceConvertor()]
+    "convertor",
+    [
+        BasicConvertor(),
+        DatetimeConvertor(),
+        ReferenceConvertor(ConvertFactory().convert),
+    ],
 )
 def test_convertor__none__raises(convertor):
     """None вместо объекта вызывает исключение валидации."""
@@ -99,12 +105,19 @@ def test_convertor__none__raises(convertor):
 
 
 def test_convert_factory__model__all_convertors_merged(units):
-    """Словарь модели объединяет простые поля и ссылки."""
+    """Словарь модели объединяет тип, простые поля и вложенные ссылки."""
     kilogram = units["килограмм"]
 
     assert ConvertFactory().convert(kilogram) == {
+        "type": "MeasurementUnitModel",
         "base_coefficient": 1000,
-        "base_unit": units["грамм"].id,
+        "base_unit": {
+            "type": "MeasurementUnitModel",
+            "base_coefficient": 1,
+            "coefficient": 1,
+            "id": units["грамм"].id,
+            "name": "грамм",
+        },
         "coefficient": 1000,
         "id": kilogram.id,
         "name": "килограмм",
@@ -114,6 +127,7 @@ def test_convert_factory__model__all_convertors_merged(units):
 def test_convert_factory__datetime__merged():
     """Дата попадает в общий словарь вместе с простыми полями."""
     assert ConvertFactory().convert(DatedStub()) == {
+        "type": "DatedStub",
         "created": "2026-10-21T12:30:00",
         "name": "заглушка",
     }
@@ -139,18 +153,21 @@ def test_convert_factory__composite__structure_kept(groups, units):
     """Вложенные списки сохраняют структуру: карта → блюда → состав."""
     recipe = TechnologicalMapModel.create_technological_map(groups, units)
 
-    result = ConvertFactory().convert(recipe)
+    factory = ConvertFactory()
 
-    assert set(result) == {"dishes", "id", "name"}
+    result = factory.convert(recipe)
+
+    assert set(result) == {"type", "dishes", "id", "name"}
     dough, pizza = result["dishes"]
-    assert set(dough) == {"id", "ingredients", "name", "recipe"}
+    assert set(dough) == {"type", "id", "ingredients", "name", "recipe"}
     assert pizza["ingredients"][0] == dough
     assert dough["ingredients"][0] == {
+        "type": "IngredientModel",
         "brutto": 150,
         "full_name": "Мука пшеничная высшего сорта",
-        "group": groups["Бакалея"].id,
+        "group": factory.convert(groups["Бакалея"]),
         "id": recipe.dishes[0].ingredients[0].id,
-        "measurement_unit": units["грамм"].id,
+        "measurement_unit": factory.convert(units["грамм"]),
         "name": "Мука пшеничная",
         "netto": 150,
     }

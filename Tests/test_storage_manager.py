@@ -206,7 +206,7 @@ def test_storage_manager__first_start__technological_map_is_margherita():
 
 
 def test_storage_manager__save__all_collections_in_json(tmp_path):
-    """Выгрузка пишет в json все справочники, ссылки — в виде id."""
+    """Выгрузка пишет в json все справочники, ссылки — вложенными словарями."""
     manager = _build_started_manager()
     file_name = tmp_path / "storage.json"
 
@@ -215,4 +215,4 @@ def test_storage_manager__save__all_collections_in_json(tmp_path):
     data = json.loads(file_name.read_text(encoding="utf-8"))
     assert set(data) == set(COLLECTIONS)
     units = {unit["name"]: unit for unit in data["measurement_units"]}
-    assert units["килограмм"]["base_unit"] == units["грамм"]["id"]
+    assert units["килограмм"]["base_unit"] == units["грамм"]
