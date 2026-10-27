@@ -1,0 +1,686 @@
+{
+  "measurement_units": [
+    {
+      "type": "MeasurementUnitModel",
+      "base_coefficient": 1,
+      "base_unit": null,
+      "coefficient": 1,
+      "id": "5c411415-8829-4686-960f-00221d7210d5",
+      "name": "грамм"
+    },
+    {
+      "type": "MeasurementUnitModel",
+      "base_coefficient": 1000,
+      "coefficient": 1000,
+      "id": "f5906d8c-e88d-4a67-9050-036cc96fde03",
+      "name": "килограмм",
+      "base_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1,
+        "base_unit": null,
+        "coefficient": 1,
+        "id": "5c411415-8829-4686-960f-00221d7210d5",
+        "name": "грамм"
+      }
+    },
+    {
+      "type": "MeasurementUnitModel",
+      "base_coefficient": 1,
+      "base_unit": null,
+      "coefficient": 1,
+      "id": "84059231-c41e-474d-b40a-237353fd9dac",
+      "name": "миллилитр"
+    },
+    {
+      "type": "MeasurementUnitModel",
+      "base_coefficient": 1000,
+      "coefficient": 1000,
+      "id": "fd04c74e-69f1-4c7a-b07c-c24f8687f47a",
+      "name": "литр",
+      "base_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1,
+        "base_unit": null,
+        "coefficient": 1,
+        "id": "84059231-c41e-474d-b40a-237353fd9dac",
+        "name": "миллилитр"
+      }
+    },
+    {
+      "type": "MeasurementUnitModel",
+      "base_coefficient": 1,
+      "base_unit": null,
+      "coefficient": 1,
+      "id": "6e4a1893-3765-4172-adc9-63c1646dc9a3",
+      "name": "штука"
+    }
+  ],
+  "nomenclature": [
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Мука пшеничная высшего сорта",
+      "id": "c7179042-5e68-4c17-b0a8-32ce4ca9dfd6",
+      "name": "Мука пшеничная",
+      "position_type": "raw_material",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+        "name": "Бакалея"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1000,
+        "coefficient": 1000,
+        "id": "f5906d8c-e88d-4a67-9050-036cc96fde03",
+        "name": "килограмм",
+        "base_unit": {
+          "type": "MeasurementUnitModel",
+          "base_coefficient": 1,
+          "base_unit": null,
+          "coefficient": 1,
+          "id": "5c411415-8829-4686-960f-00221d7210d5",
+          "name": "грамм"
+        }
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Дрожжи хлебопекарные сухие",
+      "id": "716b2a4d-4776-456a-a4e5-df78363069b2",
+      "name": "Дрожжи сухие",
+      "position_type": "raw_material",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+        "name": "Бакалея"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1,
+        "base_unit": null,
+        "coefficient": 1,
+        "id": "5c411415-8829-4686-960f-00221d7210d5",
+        "name": "грамм"
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Соль поваренная пищевая",
+      "id": "fe445f95-3dd9-460f-b36a-441c527891bd",
+      "name": "Соль",
+      "position_type": "raw_material",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+        "name": "Бакалея"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1,
+        "base_unit": null,
+        "coefficient": 1,
+        "id": "5c411415-8829-4686-960f-00221d7210d5",
+        "name": "грамм"
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Масло оливковое Extra Virgin",
+      "id": "0231d53b-9cf6-47a5-85ad-ddf351d6fb93",
+      "name": "Масло оливковое",
+      "position_type": "raw_material",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+        "name": "Бакалея"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1,
+        "base_unit": null,
+        "coefficient": 1,
+        "id": "84059231-c41e-474d-b40a-237353fd9dac",
+        "name": "миллилитр"
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Сыр Моцарелла для пиццы 45%",
+      "id": "ba37a1c3-1283-4999-82ba-9d5c483ef66a",
+      "name": "Сыр Моцарелла",
+      "position_type": "raw_material",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "86ff23e1-ab88-4ef3-9f24-b3325429a0bc",
+        "name": "Молочные продукты"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1000,
+        "coefficient": 1000,
+        "id": "f5906d8c-e88d-4a67-9050-036cc96fde03",
+        "name": "килограмм",
+        "base_unit": {
+          "type": "MeasurementUnitModel",
+          "base_coefficient": 1,
+          "base_unit": null,
+          "coefficient": 1,
+          "id": "5c411415-8829-4686-960f-00221d7210d5",
+          "name": "грамм"
+        }
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Томаты свежие",
+      "id": "57c186c1-d208-4125-8082-a616187477f8",
+      "name": "Томаты",
+      "position_type": "raw_material",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "309affcc-68c0-4d83-8d75-eaeba6e278f1",
+        "name": "Овощи"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1000,
+        "coefficient": 1000,
+        "id": "f5906d8c-e88d-4a67-9050-036cc96fde03",
+        "name": "килограмм",
+        "base_unit": {
+          "type": "MeasurementUnitModel",
+          "base_coefficient": 1,
+          "base_unit": null,
+          "coefficient": 1,
+          "id": "5c411415-8829-4686-960f-00221d7210d5",
+          "name": "грамм"
+        }
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Базилик зелёный свежий",
+      "id": "5af42f0e-06f6-4abe-8d45-d34501374475",
+      "name": "Базилик",
+      "position_type": "raw_material",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "309affcc-68c0-4d83-8d75-eaeba6e278f1",
+        "name": "Овощи"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1,
+        "base_unit": null,
+        "coefficient": 1,
+        "id": "5c411415-8829-4686-960f-00221d7210d5",
+        "name": "грамм"
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Тесто дрожжевое для пиццы",
+      "id": "956896b0-cbd0-45a3-9395-34533192ef90",
+      "name": "Тесто для пиццы",
+      "position_type": "semi_finished",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "0f0298f4-e5f9-4f84-a207-843dd40f23eb",
+        "name": "Полуфабрикаты"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1000,
+        "coefficient": 1000,
+        "id": "f5906d8c-e88d-4a67-9050-036cc96fde03",
+        "name": "килограмм",
+        "base_unit": {
+          "type": "MeasurementUnitModel",
+          "base_coefficient": 1,
+          "base_unit": null,
+          "coefficient": 1,
+          "id": "5c411415-8829-4686-960f-00221d7210d5",
+          "name": "грамм"
+        }
+      }
+    },
+    {
+      "type": "NomenclatureModel",
+      "full_name": "Пицца Маргарита 30 см",
+      "id": "d0ad88ec-ac30-479e-8396-771b8275650b",
+      "name": "Пицца Маргарита",
+      "position_type": "dish",
+      "group": {
+        "type": "NomenclatureGroupModel",
+        "id": "4017683a-6ef1-4116-968f-49ef226eddc9",
+        "name": "Блюда"
+      },
+      "measurement_unit": {
+        "type": "MeasurementUnitModel",
+        "base_coefficient": 1,
+        "base_unit": null,
+        "coefficient": 1,
+        "id": "6e4a1893-3765-4172-adc9-63c1646dc9a3",
+        "name": "штука"
+      }
+    }
+  ],
+  "nomenclature_groups": [
+    {
+      "type": "NomenclatureGroupModel",
+      "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+      "name": "Бакалея"
+    },
+    {
+      "type": "NomenclatureGroupModel",
+      "id": "86ff23e1-ab88-4ef3-9f24-b3325429a0bc",
+      "name": "Молочные продукты"
+    },
+    {
+      "type": "NomenclatureGroupModel",
+      "id": "309affcc-68c0-4d83-8d75-eaeba6e278f1",
+      "name": "Овощи"
+    },
+    {
+      "type": "NomenclatureGroupModel",
+      "id": "0f0298f4-e5f9-4f84-a207-843dd40f23eb",
+      "name": "Полуфабрикаты"
+    },
+    {
+      "type": "NomenclatureGroupModel",
+      "id": "4017683a-6ef1-4116-968f-49ef226eddc9",
+      "name": "Блюда"
+    }
+  ],
+  "production_shops": [
+    {
+      "type": "ProductionShopModel",
+      "id": "ca5d72ca-8e39-4969-8c78-efe7c9206ca4",
+      "name": "Производственный цех"
+    }
+  ],
+  "restaurants": [
+    {
+      "type": "RestaurantModel",
+      "id": "f100108d-5679-4528-b1d7-14ac67436163",
+      "name": "Ромашка Центральный"
+    },
+    {
+      "type": "RestaurantModel",
+      "id": "78680bea-5c41-4617-a0b9-c4fc3e79c19b",
+      "name": "Ромашка Северный"
+    }
+  ],
+  "technological_maps": [
+    {
+      "type": "TechnologicalMapModel",
+      "id": "322536cb-487a-4be1-9255-db92e84ba929",
+      "name": "Пицца Маргарита",
+      "dishes": [
+        {
+          "type": "DishModel",
+          "id": "5a73886d-7afc-4847-a881-6febe5e2421f",
+          "name": "Тесто для пиццы",
+          "recipe": "1. Растворить дрожжи в тёплой воде (35–38 °C) и оставить на 10 минут до появления пены.\n2. Смешать муку с солью, влить воду с дрожжами и оливковое масло.\n3. Вымешивать 8–10 минут до гладкого эластичного теста, которое не липнет к рукам.\n4. Скатать в шар, накрыть и оставить в тёплом месте на 1–1,5 часа, пока тесто не увеличится в объёме вдвое.",
+          "ingredients": [
+            {
+              "type": "IngredientModel",
+              "brutto": 150,
+              "full_name": "Мука пшеничная высшего сорта",
+              "id": "cc1e1726-9c91-4b20-80ac-d79ea1e9f87a",
+              "name": "Мука пшеничная",
+              "netto": 150,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                "name": "Бакалея"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "5c411415-8829-4686-960f-00221d7210d5",
+                "name": "грамм"
+              }
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 5,
+              "full_name": "Масло оливковое Extra Virgin",
+              "id": "2ec2b694-92e8-4c58-a535-cebc2a7a4ec7",
+              "name": "Масло оливковое",
+              "netto": 5,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                "name": "Бакалея"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "84059231-c41e-474d-b40a-237353fd9dac",
+                "name": "миллилитр"
+              }
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 3,
+              "full_name": "Соль поваренная пищевая",
+              "id": "96870237-aaf2-408a-9eba-789785f512c9",
+              "name": "Соль",
+              "netto": 3,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                "name": "Бакалея"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "5c411415-8829-4686-960f-00221d7210d5",
+                "name": "грамм"
+              }
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 2,
+              "full_name": "Дрожжи хлебопекарные сухие",
+              "id": "f3c84e43-54de-462b-89eb-3c1a897411db",
+              "name": "Дрожжи сухие",
+              "netto": 2,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                "name": "Бакалея"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "5c411415-8829-4686-960f-00221d7210d5",
+                "name": "грамм"
+              }
+            }
+          ]
+        },
+        {
+          "type": "DishModel",
+          "id": "47e37486-403e-44ce-9e84-c750e5e5f9f3",
+          "name": "Пицца Маргарита",
+          "recipe": "1. Разогреть духовку до 250–280 °C вместе с камнем для пиццы или перевёрнутым противнем.\n2. Надрезать томаты крестом, опустить в кипяток на 30 секунд, снять кожицу и измельчить в соус с солью.\n3. Растянуть тесто руками в круг диаметром 30 см, оставив бортик 1–1,5 см.\n4. Распределить томатный соус по тесту, не заходя на бортик.\n5. Выложить моцареллу небольшими кусочками и сбрызнуть оливковым маслом.\n6. Выпекать 7–10 минут, пока бортик не станет золотистым, а сыр не расплавится.\n7. Сразу после выпечки выложить листья базилика.",
+          "ingredients": [
+            {
+              "type": "DishModel",
+              "id": "5a73886d-7afc-4847-a881-6febe5e2421f",
+              "name": "Тесто для пиццы",
+              "recipe": "1. Растворить дрожжи в тёплой воде (35–38 °C) и оставить на 10 минут до появления пены.\n2. Смешать муку с солью, влить воду с дрожжами и оливковое масло.\n3. Вымешивать 8–10 минут до гладкого эластичного теста, которое не липнет к рукам.\n4. Скатать в шар, накрыть и оставить в тёплом месте на 1–1,5 часа, пока тесто не увеличится в объёме вдвое.",
+              "ingredients": [
+                {
+                  "type": "IngredientModel",
+                  "brutto": 150,
+                  "full_name": "Мука пшеничная высшего сорта",
+                  "id": "cc1e1726-9c91-4b20-80ac-d79ea1e9f87a",
+                  "name": "Мука пшеничная",
+                  "netto": 150,
+                  "position_type": "raw_material",
+                  "group": {
+                    "type": "NomenclatureGroupModel",
+                    "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                    "name": "Бакалея"
+                  },
+                  "measurement_unit": {
+                    "type": "MeasurementUnitModel",
+                    "base_coefficient": 1,
+                    "base_unit": null,
+                    "coefficient": 1,
+                    "id": "5c411415-8829-4686-960f-00221d7210d5",
+                    "name": "грамм"
+                  }
+                },
+                {
+                  "type": "IngredientModel",
+                  "brutto": 5,
+                  "full_name": "Масло оливковое Extra Virgin",
+                  "id": "2ec2b694-92e8-4c58-a535-cebc2a7a4ec7",
+                  "name": "Масло оливковое",
+                  "netto": 5,
+                  "position_type": "raw_material",
+                  "group": {
+                    "type": "NomenclatureGroupModel",
+                    "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                    "name": "Бакалея"
+                  },
+                  "measurement_unit": {
+                    "type": "MeasurementUnitModel",
+                    "base_coefficient": 1,
+                    "base_unit": null,
+                    "coefficient": 1,
+                    "id": "84059231-c41e-474d-b40a-237353fd9dac",
+                    "name": "миллилитр"
+                  }
+                },
+                {
+                  "type": "IngredientModel",
+                  "brutto": 3,
+                  "full_name": "Соль поваренная пищевая",
+                  "id": "96870237-aaf2-408a-9eba-789785f512c9",
+                  "name": "Соль",
+                  "netto": 3,
+                  "position_type": "raw_material",
+                  "group": {
+                    "type": "NomenclatureGroupModel",
+                    "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                    "name": "Бакалея"
+                  },
+                  "measurement_unit": {
+                    "type": "MeasurementUnitModel",
+                    "base_coefficient": 1,
+                    "base_unit": null,
+                    "coefficient": 1,
+                    "id": "5c411415-8829-4686-960f-00221d7210d5",
+                    "name": "грамм"
+                  }
+                },
+                {
+                  "type": "IngredientModel",
+                  "brutto": 2,
+                  "full_name": "Дрожжи хлебопекарные сухие",
+                  "id": "f3c84e43-54de-462b-89eb-3c1a897411db",
+                  "name": "Дрожжи сухие",
+                  "netto": 2,
+                  "position_type": "raw_material",
+                  "group": {
+                    "type": "NomenclatureGroupModel",
+                    "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                    "name": "Бакалея"
+                  },
+                  "measurement_unit": {
+                    "type": "MeasurementUnitModel",
+                    "base_coefficient": 1,
+                    "base_unit": null,
+                    "coefficient": 1,
+                    "id": "5c411415-8829-4686-960f-00221d7210d5",
+                    "name": "грамм"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 150,
+              "full_name": "Томаты свежие",
+              "id": "5b21fe2d-e620-4360-9265-9e3ba7897fe8",
+              "name": "Томаты",
+              "netto": 150,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "309affcc-68c0-4d83-8d75-eaeba6e278f1",
+                "name": "Овощи"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "5c411415-8829-4686-960f-00221d7210d5",
+                "name": "грамм"
+              }
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 125,
+              "full_name": "Сыр Моцарелла для пиццы 45%",
+              "id": "7c1527c2-a82f-4d22-bd4c-1ba12fa5115b",
+              "name": "Сыр Моцарелла",
+              "netto": 125,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "86ff23e1-ab88-4ef3-9f24-b3325429a0bc",
+                "name": "Молочные продукты"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "5c411415-8829-4686-960f-00221d7210d5",
+                "name": "грамм"
+              }
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 10,
+              "full_name": "Масло оливковое Extra Virgin",
+              "id": "bac377a3-5aa7-46df-9c20-cdedc351755c",
+              "name": "Масло оливковое",
+              "netto": 10,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                "name": "Бакалея"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "84059231-c41e-474d-b40a-237353fd9dac",
+                "name": "миллилитр"
+              }
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 5,
+              "full_name": "Базилик зелёный свежий",
+              "id": "f30b7d83-1f36-45c6-b1d2-63f445901191",
+              "name": "Базилик",
+              "netto": 5,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "309affcc-68c0-4d83-8d75-eaeba6e278f1",
+                "name": "Овощи"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "5c411415-8829-4686-960f-00221d7210d5",
+                "name": "грамм"
+              }
+            },
+            {
+              "type": "IngredientModel",
+              "brutto": 1,
+              "full_name": "Соль поваренная пищевая",
+              "id": "e5b6eb26-a12f-4dcc-b40d-bf065882d85a",
+              "name": "Соль",
+              "netto": 1,
+              "position_type": "raw_material",
+              "group": {
+                "type": "NomenclatureGroupModel",
+                "id": "2f3a1784-6d91-4af0-8cd6-62d9d8976861",
+                "name": "Бакалея"
+              },
+              "measurement_unit": {
+                "type": "MeasurementUnitModel",
+                "base_coefficient": 1,
+                "base_unit": null,
+                "coefficient": 1,
+                "id": "5c411415-8829-4686-960f-00221d7210d5",
+                "name": "грамм"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "warehouses": [
+    {
+      "type": "WarehouseModel",
+      "id": "1af9399e-b733-4c87-8d7e-96941b4f30b5",
+      "name": "Центральный склад цеха",
+      "premises": {
+        "type": "PremisesModel",
+        "address": "ул. Промышленная, 1",
+        "id": "e97a6430-49e4-4ceb-a7fe-f67592eac8f7",
+        "name": "Холодильный комплекс цеха",
+        "square": 420.0
+      },
+      "warehouse_owner": {
+        "type": "ProductionShopModel",
+        "id": "ca5d72ca-8e39-4969-8c78-efe7c9206ca4",
+        "name": "Производственный цех"
+      }
+    },
+    {
+      "type": "WarehouseModel",
+      "id": "f6fb566b-ab48-429e-86d5-ed59489e8680",
+      "name": "Склад ресторана Ромашка Центральный",
+      "premises": {
+        "type": "PremisesModel",
+        "address": "ул. Ленина, 12",
+        "id": "18e8769e-b767-4fae-bda7-01c61ae29389",
+        "name": "Складское помещение Центральный",
+        "square": 120.0
+      },
+      "warehouse_owner": {
+        "type": "RestaurantModel",
+        "id": "f100108d-5679-4528-b1d7-14ac67436163",
+        "name": "Ромашка Центральный"
+      }
+    },
+    {
+      "type": "WarehouseModel",
+      "id": "48d89571-50e5-4862-a305-c642b13ce8c5",
+      "name": "Склад ресторана Ромашка Северный",
+      "premises": {
+        "type": "PremisesModel",
+        "address": "пр. Мира, 45",
+        "id": "d9c40077-9d94-4ffc-9da3-6b9027798ce4",
+        "name": "Складское помещение Северный",
+        "square": 60.5
+      },
+      "warehouse_owner": {
+        "type": "RestaurantModel",
+        "id": "78680bea-5c41-4617-a0b9-c4fc3e79c19b",
+        "name": "Ромашка Северный"
+      }
+    }
+  ]
+}
