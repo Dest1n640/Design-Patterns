@@ -58,6 +58,15 @@ def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
     }
 
 
+def test_basic_convertor__none_field__kept_as_none(units):
+    """Пустое свойство (base_unit=None) попадает в словарь со значением None."""
+    # Действие
+    result = BasicConvertor().convert(units["грамм"])
+
+    # Проверки
+    assert result["base_unit"] is None
+
+
 def test_basic_convertor__composite_fields__skipped(flour):
     """Ссылки на сущности и enum пропускаются."""
     # Действие
@@ -166,6 +175,7 @@ def test_convert_factory__model__all_convertors_merged(units):
         "base_unit": {
             "type": "MeasurementUnitModel",
             "base_coefficient": 1,
+            "base_unit": None,
             "coefficient": 1,
             "id": units["грамм"].id,
             "name": "грамм",
