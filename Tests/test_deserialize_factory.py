@@ -5,18 +5,18 @@ import json
 import pytest
 
 from Src.Core.exception import ValidationException
-from Src.Logics.convert_factory import ConvertFactory
 from Src.Logics.deserialize_factory import DeserializeFactory
+from Src.Logics.serialize_factory import SerializeFactory
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 
 
 def test_deserialize_factory__saved_units__fields_and_nested_models_restored(units):
     """После чтения JSON восстанавливаются типы, поля и id единиц измерения."""
     # Подготовка
-    data = json.loads(json.dumps(ConvertFactory().convert(units)))
+    data = json.loads(json.dumps(SerializeFactory().convert(units)))
 
     # Действия
-    restored = DeserializeFactory().deserialize(data)
+    restored = DeserializeFactory().convert(data)
 
     # Проверки
     assert list(restored) == list(units)
@@ -44,7 +44,7 @@ def test_deserialize_factory__optional_argument_absent__constructor_default_used
     data = {"type": "MeasurementUnitModel", "name": "грамм", "coefficient": 1}
 
     # Действия
-    model = DeserializeFactory().deserialize(data)
+    model = DeserializeFactory().convert(data)
 
     # Проверки
     assert model.name == "грамм"
@@ -62,7 +62,7 @@ def test_deserialize_factory__required_argument_absent__raises(field):
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        DeserializeFactory().deserialize(data)
+        DeserializeFactory().convert(data)
 
     # Проверки
     assert exc_info.value.field == field
@@ -76,7 +76,7 @@ def test_deserialize_factory__invalid_model_type__raises(type_name):
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        DeserializeFactory().deserialize(data)
+        DeserializeFactory().convert(data)
 
     # Проверки
     assert exc_info.value.field == "type"
@@ -88,7 +88,7 @@ def test_deserialize_factory__nested_collections__structure_and_values_kept():
     data = {"values": [None, True, False, 1, 1.5, "текст", [], {}]}
 
     # Действия
-    restored = DeserializeFactory().deserialize(data)
+    restored = DeserializeFactory().convert(data)
 
     # Проверки
     assert restored == data
@@ -105,7 +105,7 @@ def test_deserialize_factory__invalid_model_field__validation_preserved(field, v
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        DeserializeFactory().deserialize(data)
+        DeserializeFactory().convert(data)
 
     # Проверки
     assert exc_info.value.field == field
@@ -118,7 +118,7 @@ def test_deserialize_factory__non_json_object__raises():
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        DeserializeFactory().deserialize(source)
+        DeserializeFactory().convert(source)
 
     # Проверки
     assert exc_info.value.field == "source"
