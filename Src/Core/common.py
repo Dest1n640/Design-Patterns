@@ -1,3 +1,7 @@
+import inspect
+from collections.abc import Mapping
+
+from Src.Core.abstract_model import AbstractModel
 from Src.Core.exception import ValidationException
 
 
@@ -18,3 +22,15 @@ class Common:
                 continue
             fields.append(name)
         return fields
+
+    @staticmethod
+    def get_constructor_parameters(
+        source: type[AbstractModel],
+    ) -> Mapping[str, inspect.Parameter]:
+        """Возвращает параметры конструктора класса модели."""
+        if not inspect.isclass(source) or not issubclass(source, AbstractModel):
+            raise ValidationException(
+                "source", "Ожидается класс, унаследованный от AbstractModel"
+            )
+        signature = inspect.signature(source)
+        return signature.parameters
