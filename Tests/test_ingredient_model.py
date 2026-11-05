@@ -24,8 +24,14 @@ def _build_ingredient(brutto=120, netto=100):
 
 def test_ingredient_model__constructor__brutto_and_netto_are_stored():
     """Конструктор сохраняет вес брутто и нетто."""
-    ingredient = _build_ingredient(brutto=120.5, netto=100)
+    # Подготовка
+    brutto = 120.5
+    netto = 100
 
+    # Действия
+    ingredient = _build_ingredient(brutto=brutto, netto=netto)
+
+    # Проверки
     assert ingredient.brutto == 120.5
     assert ingredient.netto == 100
 
@@ -33,23 +39,42 @@ def test_ingredient_model__constructor__brutto_and_netto_are_stored():
 @pytest.mark.parametrize("value", [0, -1, "100", None, True, float("nan")])
 def test_ingredient_model__constructor__invalid_brutto_raises(value):
     """Брутто, не являющееся положительным числом, вызывает исключение валидации."""
-    with pytest.raises(ValidationException):
-        _build_ingredient(brutto=value)
+    # Подготовка
+    netto = 100
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        _build_ingredient(netto=netto, brutto=value)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 @pytest.mark.parametrize("value", [0, -1, "100", None, True, float("inf")])
 def test_ingredient_model__constructor__invalid_netto_raises(value):
     """Нетто, не являющееся положительным числом, вызывает исключение валидации."""
-    with pytest.raises(ValidationException):
-        _build_ingredient(netto=value)
+    # Подготовка
+    brutto = 120
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        _build_ingredient(brutto=brutto, netto=value)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_ingredient_model__create_margherita__dishes_and_ingredients_count(
     groups, units
 ):
     """Фабрика возвращает сырьё теста (4) и пиццы (5, без теста)."""
+    # Подготовка
+    # Справочники подготовлены фикстурами groups и units.
+
+    # Действия
     ingredients = IngredientModel.create_margherita_ingredients(groups, units)
 
+    # Проверки
     assert {name: len(items) for name, items in ingredients.items()} == {
         "Тесто для пиццы": 4,
         "Пицца Маргарита": 5,
@@ -84,8 +109,13 @@ def test_ingredient_model__create_margherita__quantities_match_recipe(
     dish, expected, groups, units
 ):
     """Количества и единицы измерения совпадают с рецептом pizza_margherita.md."""
+    # Подготовка
+    # Справочники подготовлены фикстурами groups и units.
+
+    # Действия
     ingredients = IngredientModel.create_margherita_ingredients(groups, units)[dish]
 
+    # Проверки
     assert {
         item.name: (item.netto, item.measurement_unit.name) for item in ingredients
     } == expected

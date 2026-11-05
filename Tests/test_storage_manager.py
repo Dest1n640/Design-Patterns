@@ -59,8 +59,10 @@ def _same_objects(left: list, right: list) -> bool:
 
 def test_storage_manager__two_instances__same_object():
     """Повторное создание хранилища возвращает тот же экземпляр (singleton)."""
-    # Действие
+    # Подготовка
     first = StorageManager()
+
+    # Действия
     second = StorageManager()
 
     # Проверки
@@ -72,7 +74,7 @@ def test_storage_manager__start_via_one_instance__data_visible_in_another():
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     nomenclature = StorageManager().nomenclature
 
     # Проверки
@@ -81,7 +83,10 @@ def test_storage_manager__start_via_one_instance__data_visible_in_another():
 
 def test_storage_manager__constructor__not_loaded_and_empty():
     """До запуска хранилище не загружено, а все коллекции пусты."""
-    # Действие
+    # Подготовка
+    # Дополнительная подготовка не требуется.
+
+    # Действия
     manager = StorageManager()
 
     # Проверки
@@ -96,7 +101,7 @@ def test_storage_manager__start_first_start__is_loaded_and_settings_kept():
     settings = _build_settings(first_start=True)
     manager = StorageManager()
 
-    # Действие
+    # Действия
     manager.start(settings)
 
     # Проверки
@@ -108,9 +113,10 @@ def test_storage_manager__start_not_first_start__data_not_formed():
     """При first_start = False данные не формируются и хранилище не загружено."""
     # Подготовка
     manager = StorageManager()
+    settings = _build_settings(first_start=False)
 
-    # Действие
-    manager.start(_build_settings(first_start=False))
+    # Действия
+    manager.start(settings)
 
     # Проверки
     assert not manager.is_loaded
@@ -122,9 +128,10 @@ def test_storage_manager__start_twice__data_not_recreated():
     # Подготовка
     manager = _build_started_manager()
     nomenclature = manager.nomenclature
+    settings = _build_settings()
 
-    # Действие
-    manager.start(_build_settings())
+    # Действия
+    manager.start(settings)
 
     # Проверки
     assert _same_objects(manager.nomenclature, nomenclature)
@@ -135,9 +142,12 @@ def test_storage_manager__start_not_settings_model__raises():
     # Подготовка
     manager = StorageManager()
 
-    # Действие и проверки
-    with pytest.raises(ValidationException):
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
         manager.start("настройки")
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 @pytest.mark.parametrize("collection", COLLECTIONS)
@@ -146,7 +156,7 @@ def test_storage_manager__collection_property__returns_copy(collection):
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     getattr(manager, collection).clear()
 
     # Проверки
@@ -159,7 +169,7 @@ def test_storage_manager__first_start__collection_is_filled(collection):
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     items = getattr(manager, collection)
 
     # Проверки
@@ -176,7 +186,7 @@ def test_storage_manager__first_start__derived_unit_refers_to_base_unit(
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     units = _by_name(manager.measurement_units)
 
     # Проверки
@@ -188,7 +198,7 @@ def test_storage_manager__first_start__nomenclature_refers_to_stored_objects():
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     nomenclature = manager.nomenclature
 
     # Проверки
@@ -205,7 +215,7 @@ def test_storage_manager__first_start__warehouse_owners_are_stored_objects():
     manager = _build_started_manager()
     owners = [*manager.restaurants, *manager.production_shops]
 
-    # Действие
+    # Действия
     warehouses = manager.warehouses
 
     # Проверки
@@ -230,7 +240,7 @@ def test_storage_manager__first_start__all_ids_are_unique():
         *_ingredients(manager),
     ]
 
-    # Действие
+    # Действия
     ids = [item.id for item in objects]
 
     # Проверки
@@ -242,7 +252,7 @@ def test_storage_manager__first_start__ingredients_refer_to_stored_objects():
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     ingredients = _ingredients(manager)
 
     # Проверки
@@ -258,7 +268,7 @@ def test_storage_manager__first_start__recipe_positions_exist():
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     names = _by_name(manager.nomenclature).keys()
 
     # Проверки
@@ -280,7 +290,7 @@ def test_storage_manager__first_start__technological_map_is_margherita():
     # Подготовка
     manager = _build_started_manager()
 
-    # Действие
+    # Действия
     maps = _by_name(manager.technological_maps)
 
     # Проверки
@@ -297,11 +307,11 @@ def test_storage_manager__save__all_collections_in_json(tmp_path):
     manager = _build_started_manager()
     file_name = tmp_path / "storage.json"
 
-    # Действие
+    # Действия
     manager.save(str(file_name))
+    data = json.loads(file_name.read_text(encoding="utf-8"))
 
     # Проверки
-    data = json.loads(file_name.read_text(encoding="utf-8"))
     assert set(data) == set(COLLECTIONS)
     units = {unit["name"]: unit for unit in data["measurement_units"]}
     assert units["килограмм"]["base_unit"] == units["грамм"]

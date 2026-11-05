@@ -19,10 +19,24 @@ def _build_premises():
 )
 def test_warehouse_model__constructor__restaurant_or_shop_owner_is_accepted(owner):
     """Владельцем склада может быть ресторан или производственный цех."""
-    WarehouseModel("Склад", _build_premises(), owner)
+    # Подготовка
+    premises = _build_premises()
+
+    # Действия
+    warehouse = WarehouseModel("Склад", premises, owner)
+
+    # Проверки
+    assert warehouse.warehouse_owner is owner
 
 
 def test_warehouse_model__constructor__other_owner_type_raises():
     """Владелец, не являющийся рестораном или цехом, вызывает исключение валидации."""
-    with pytest.raises(ValidationException):
-        WarehouseModel("Склад", _build_premises(), "не владелец")
+    # Подготовка
+    premises = _build_premises()
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        WarehouseModel("Склад", premises, "не владелец")
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)

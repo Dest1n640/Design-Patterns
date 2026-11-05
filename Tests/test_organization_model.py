@@ -19,13 +19,27 @@ def _build_organization(
 
 def test_organization_model__constructor__name_is_taken_from_argument():
     """Имя организации берётся из аргумента конструктора, а не зашито в класс."""
-    assert _build_organization(name="Лютик").name == "Лютик"
+    # Подготовка
+    name = "Лютик"
+
+    # Действия
+    organization = _build_organization(name=name)
+
+    # Проверки
+    assert organization.name == name
 
 
 def test_organization_model__constructor__invalid_name_raises():
     """Пустое имя организации вызывает исключение валидации."""
-    with pytest.raises(ValidationException):
-        _build_organization(name="")
+    # Подготовка
+    name = ""
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        _build_organization(name=name)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 @pytest.mark.parametrize(
@@ -35,7 +49,14 @@ def test_organization_model__constructor__exact_digits_length_is_accepted(
     field, length
 ):
     """ИНН, БИК и расчётный счёт допустимы при своей длине (10, 9, 20 цифр)."""
-    _build_organization(**{field: "1" * length})
+    # Подготовка
+    value = "1" * length
+
+    # Действия
+    organization = _build_organization(**{field: value})
+
+    # Проверки
+    assert getattr(organization, field) == value
 
 
 @pytest.mark.parametrize(
@@ -46,13 +67,25 @@ def test_organization_model__constructor__digits_length_off_by_one_raises(
     field, length, delta
 ):
     """ИНН, БИК и расчётный счёт на одну цифру короче или длиннее вызывают ошибку."""
-    with pytest.raises(ValidationException):
-        _build_organization(**{field: "1" * (length + delta)})
+    # Подготовка
+    value = "1" * (length + delta)
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        _build_organization(**{field: value})
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_organization_model__field_mutation__does_not_affect_other_instance():
     """Изменение поля одного экземпляра организации не влияет на другой экземпляр."""
+    # Подготовка
     org1 = _build_organization(legal_form="ООО")
     org2 = _build_organization(legal_form="АО")
+
+    # Действия
     org1.legal_form = "ИП"
+
+    # Проверки
     assert org2.legal_form == "АО"

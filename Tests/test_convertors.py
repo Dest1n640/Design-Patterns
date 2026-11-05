@@ -46,7 +46,7 @@ def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
     # Подготовка
     kilogram = units["килограмм"]
 
-    # Действие
+    # Действия
     result = BasicConvertor().convert(kilogram)
 
     # Проверки
@@ -60,8 +60,11 @@ def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
 
 def test_basic_convertor__none_field__kept_as_none(units):
     """Пустое свойство (base_unit=None) попадает в словарь со значением None."""
-    # Действие
-    result = BasicConvertor().convert(units["грамм"])
+    # Подготовка
+    gram = units["грамм"]
+
+    # Действия
+    result = BasicConvertor().convert(gram)
 
     # Проверки
     assert result["base_unit"] is None
@@ -69,8 +72,11 @@ def test_basic_convertor__none_field__kept_as_none(units):
 
 def test_basic_convertor__composite_fields__skipped(flour):
     """Ссылки на сущности и enum пропускаются."""
-    # Действие
-    result = BasicConvertor().convert(flour)
+    # Подготовка
+    convertor = BasicConvertor()
+
+    # Действия
+    result = convertor.convert(flour)
 
     # Проверки
     assert result == {
@@ -82,8 +88,11 @@ def test_basic_convertor__composite_fields__skipped(flour):
 
 def test_datetime_convertor__date_field__iso_string():
     """Дата попадает в словарь строкой ISO 8601, остальные свойства — нет."""
-    # Действие
-    result = DatetimeConvertor().convert(DatedStub())
+    # Подготовка
+    model = DatedStub()
+
+    # Действия
+    result = DatetimeConvertor().convert(model)
 
     # Проверки
     assert result == {"created": "2026-10-21T12:30:00"}
@@ -91,8 +100,11 @@ def test_datetime_convertor__date_field__iso_string():
 
 def test_datetime_convertor__no_dates__empty(flour):
     """У модели без дат получается пустой словарь."""
-    # Действие
-    result = DatetimeConvertor().convert(flour)
+    # Подготовка
+    convertor = DatetimeConvertor()
+
+    # Действия
+    result = convertor.convert(flour)
 
     # Проверки
     assert result == {}
@@ -100,8 +112,11 @@ def test_datetime_convertor__no_dates__empty(flour):
 
 def test_enum_convertor__enum_field__value(flour):
     """Enum попадает в словарь значением элемента, остальные свойства — нет."""
-    # Действие
-    result = EnumConvertor().convert(flour)
+    # Подготовка
+    convertor = EnumConvertor()
+
+    # Действия
+    result = convertor.convert(flour)
 
     # Проверки
     assert result == {"position_type": "raw_material"}
@@ -109,8 +124,11 @@ def test_enum_convertor__enum_field__value(flour):
 
 def test_enum_convertor__no_enums__empty(units):
     """У модели без Enum получается пустой словарь."""
-    # Действие
-    result = EnumConvertor().convert(units["килограмм"])
+    # Подготовка
+    kilogram = units["килограмм"]
+
+    # Действия
+    result = EnumConvertor().convert(kilogram)
 
     # Проверки
     assert result == {}
@@ -122,7 +140,7 @@ def test_reference_convertor__references__nested_dicts(flour, groups, units):
     factory = ConvertFactory()
     convertor = ReferenceConvertor(factory.convert)
 
-    # Действие
+    # Действия
     result = convertor.convert(flour)
 
     # Проверки
@@ -137,7 +155,7 @@ def test_reference_convertor__none_reference__skipped(units):
     # Подготовка
     convertor = ReferenceConvertor(ConvertFactory().convert)
 
-    # Действие
+    # Действия
     result = convertor.convert(units["грамм"])
 
     # Проверки
@@ -155,9 +173,15 @@ def test_reference_convertor__none_reference__skipped(units):
 )
 def test_convertor__none__raises(convertor):
     """None вместо объекта вызывает исключение валидации."""
-    # Действие и проверки
-    with pytest.raises(ValidationException):
-        convertor.convert(None)
+    # Подготовка
+    value = None
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        convertor.convert(value)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_convert_factory__model__all_convertors_merged(units):
@@ -165,7 +189,7 @@ def test_convert_factory__model__all_convertors_merged(units):
     # Подготовка
     kilogram = units["килограмм"]
 
-    # Действие
+    # Действия
     result = ConvertFactory().convert(kilogram)
 
     # Проверки
@@ -188,8 +212,11 @@ def test_convert_factory__model__all_convertors_merged(units):
 
 def test_convert_factory__datetime__merged():
     """Дата попадает в общий словарь вместе с простыми полями."""
-    # Действие
-    result = ConvertFactory().convert(DatedStub())
+    # Подготовка
+    model = DatedStub()
+
+    # Действия
+    result = ConvertFactory().convert(model)
 
     # Проверки
     assert result == {
@@ -201,8 +228,11 @@ def test_convert_factory__datetime__merged():
 
 def test_convert_factory__list__list_of_dicts(units):
     """Список объектов превращается в список словарей в том же порядке."""
-    # Действие
-    result = ConvertFactory().convert(list(units.values()))
+    # Подготовка
+    models = list(units.values())
+
+    # Действия
+    result = ConvertFactory().convert(models)
 
     # Проверки
     assert [item["name"] for item in result] == list(units)
@@ -210,8 +240,11 @@ def test_convert_factory__list__list_of_dicts(units):
 
 def test_convert_factory__dict__dict_of_dicts(units):
     """Словарь объектов превращается в словарь словарей с теми же ключами."""
-    # Действие
-    result = ConvertFactory().convert(units)
+    # Подготовка
+    convertor = ConvertFactory()
+
+    # Действия
+    result = convertor.convert(units)
 
     # Проверки
     assert {key: item["name"] for key, item in result.items()} == {
@@ -225,7 +258,7 @@ def test_convert_factory__composite__structure_kept(groups, units):
     recipe = TechnologicalMapModel.create_technological_map(groups, units)
     factory = ConvertFactory()
 
-    # Действие
+    # Действия
     result = factory.convert(recipe)
 
     # Проверки
@@ -248,6 +281,12 @@ def test_convert_factory__composite__structure_kept(groups, units):
 
 def test_convert_factory__none__raises():
     """None вместо объекта вызывает исключение валидации."""
-    # Действие и проверки
-    with pytest.raises(ValidationException):
-        ConvertFactory().convert(None)
+    # Подготовка
+    factory = ConvertFactory()
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        factory.convert(None)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)

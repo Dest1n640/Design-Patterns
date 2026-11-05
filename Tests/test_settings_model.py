@@ -16,7 +16,13 @@ def _build_organization():
 
 def test_settings_model__constructor__fields_are_empty():
     """Новая модель настроек пустая, признак первого запуска выключен."""
+    # Подготовка
+    # Дополнительная подготовка не требуется.
+
+    # Действия
     settings = SettingsModel()
+
+    # Проверки
     assert settings.organization is None
     assert settings.boss_name == ""
     assert settings.accountant_name == ""
@@ -25,13 +31,17 @@ def test_settings_model__constructor__fields_are_empty():
 
 def test_settings_model__valid_fields__all_fields_are_set():
     """Валидные значения сохраняются в модели, строки очищаются от пробелов."""
+    # Подготовка
     organization = _build_organization()
     settings = SettingsModel()
+
+    # Действия
     settings.organization = organization
     settings.boss_name = "  Иванов И. И.  "
     settings.accountant_name = "Петрова М. С."
     settings.first_start = True
 
+    # Проверки
     assert settings.organization is organization
     assert settings.boss_name == "Иванов И. И."
     assert settings.accountant_name == "Петрова М. С."
@@ -40,21 +50,39 @@ def test_settings_model__valid_fields__all_fields_are_set():
 
 def test_settings_model__organization_not_organization_model__raises():
     """Организация другого типа вызывает исключение валидации."""
+    # Подготовка
     settings = SettingsModel()
-    with pytest.raises(ValidationException):
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
         settings.organization = "не организация"
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 @pytest.mark.parametrize("field", ["boss_name", "accountant_name"])
 def test_settings_model__invalid_string_field__raises(field):
     """Не строка в текстовых полях вызывает исключение валидации."""
+    # Подготовка
     settings = SettingsModel()
-    with pytest.raises(ValidationException):
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
         setattr(settings, field, None)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_settings_model__first_start_not_bool__raises():
     """Признак первого запуска не типа bool вызывает исключение валидации."""
+    # Подготовка
     settings = SettingsModel()
-    with pytest.raises(ValidationException):
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
         settings.first_start = "true"
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)

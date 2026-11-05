@@ -26,21 +26,27 @@ REPORTS = [CsvReport, MarkdownReport, XmlReport, HtmlReport]
 )
 def test_table_report__measurement_unit__row_in_format(report, expected, units):
     """Отчёт содержит строку единицы измерения в своём формате; имя — имя сущности."""
+    # Подготовка
     kilogram = units["килограмм"]
 
+    # Действия
     result = report().build(kilogram)
     content = result.text or result.binary.decode("utf-8-sig")
 
+    # Проверки
     assert result.name == "килограмм"
     assert expected.format(id=kilogram.id) in content
 
 
 def test_markdown_report__recipe__multiline_cell_kept_in_table(groups, units):
     """Многострочный рецепт не разрывает Markdown-таблицу: переносы — <br>."""
+    # Подготовка
     recipe = TechnologicalMapModel.create_technological_map(groups, units)
 
+    # Действия
     lines = MarkdownReport().build(recipe).binary.decode("utf-8").split("\n")
 
+    # Проверки
     # Заголовок, пустая строка, шапка, разделитель и строка на каждое блюдо.
     assert len(lines) == 4 + len(recipe.dishes)
     assert "<br>2. " in lines[4]
@@ -57,8 +63,13 @@ def test_markdown_report__recipe__multiline_cell_kept_in_table(groups, units):
 )
 def test_table_report__build__csv_markdown_binary_others_text(report, is_binary, units):
     """CSV и Markdown отдают байты файла, XML и HTML — текст."""
-    result = report().build(units["грамм"])
+    # Подготовка
+    gram = units["грамм"]
 
+    # Действия
+    result = report().build(gram)
+
+    # Проверки
     assert bool(result.binary) is is_binary
     assert bool(result.text) is not is_binary
 
@@ -66,5 +77,12 @@ def test_table_report__build__csv_markdown_binary_others_text(report, is_binary,
 @pytest.mark.parametrize("report", REPORTS)
 def test_table_report__build__not_a_model_raises(report):
     """Источник, не являющийся сущностью, вызывает исключение валидации."""
-    with pytest.raises(ValidationException):
-        report().build("не модель")
+    # Подготовка
+    builder = report()
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        builder.build("не модель")
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)

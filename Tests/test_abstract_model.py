@@ -12,7 +12,10 @@ class _AbstractModelStub(AbstractModel):
 
 def test_abstract_model__constructor__id_is_not_empty():
     """При создании сущности id сразу не пустой."""
-    # Действие
+    # Подготовка
+    # Дополнительная подготовка не требуется.
+
+    # Действия
     entity = _AbstractModelStub()
 
     # Проверки
@@ -22,8 +25,10 @@ def test_abstract_model__constructor__id_is_not_empty():
 
 def test_abstract_model__constructor__ids_are_different_across_instances():
     """Два новых экземпляра получают разные id."""
-    # Действие
+    # Подготовка
     entity1 = _AbstractModelStub()
+
+    # Действия
     entity2 = _AbstractModelStub()
 
     # Проверки
@@ -36,7 +41,7 @@ def test_abstract_model__eq__different_id_instances_are_not_equal():
     entity1 = _AbstractModelStub()
     entity2 = _AbstractModelStub()
 
-    # Действие
+    # Действия
     result = entity1 == entity2
 
     # Проверки
@@ -48,7 +53,7 @@ def test_abstract_model__set_id__id_replaced():
     # Подготовка
     entity = _AbstractModelStub()
 
-    # Действие
+    # Действия
     entity.id = "  257a7811-be66-4b35-8e81-a04226fecc2d "
 
     # Проверки
@@ -61,6 +66,9 @@ def test_abstract_model__set_invalid_id__raises(new_id):
     # Подготовка
     entity = _AbstractModelStub()
 
-    # Действие и проверки
-    with pytest.raises(ValidationException):
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
         entity.id = new_id
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)

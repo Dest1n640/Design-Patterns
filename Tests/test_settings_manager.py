@@ -25,38 +25,76 @@ def _build_loaded_manager() -> SettingsManager:
 
 def test_settings_manager__load_default_file__does_not_raise():
     """Загрузка настроек из файла по умолчанию проходит без исключений."""
-    SettingsManager().load()
+    # Подготовка
+    manager = SettingsManager()
+
+    # Действия
+    manager.load()
+
+    # Проверки
+    assert manager.is_loaded
 
 
 def test_settings_manager__load_default_file__settings_not_empty():
     """После загрузки модель настроек заполнена организацией."""
-    manager = _build_loaded_manager()
+    # Подготовка
+    manager = SettingsManager()
+
+    # Действия
+    manager.load()
+
+    # Проверки
     assert manager.settings is not None
     assert manager.settings.organization is not None
 
 
 def test_settings_manager__two_instances__same_object():
     """Повторное создание менеджера возвращает тот же экземпляр (singleton)."""
-    assert SettingsManager() is SettingsManager()
+    # Подготовка
+    first = SettingsManager()
+
+    # Действия
+    second = SettingsManager()
+
+    # Проверки
+    assert first is second
 
 
 def test_settings_manager__load_default_file__is_loaded_true():
     """После успешной загрузки признак is_loaded равен True."""
-    assert _build_loaded_manager().is_loaded
+    # Подготовка
+    manager = SettingsManager()
+
+    # Действия
+    manager.load()
+
+    # Проверки
+    assert manager.is_loaded
 
 
 def test_settings_manager__two_instances__share_settings():
     """Настройки, загруженные через один экземпляр, видны через другой."""
+    # Подготовка
     manager = _build_loaded_manager()
-    assert SettingsManager().settings is manager.settings
+
+    # Действия
+    settings = SettingsManager().settings
+
+    # Проверки
+    assert settings is manager.settings
 
 
 def test_settings_manager__load_default_file__organization_matches_json(
     settings_data,
 ):
     """Реквизиты организации совпадают с разделом company в settings.json."""
+    # Подготовка
     company = settings_data["company"]
+
+    # Действия
     organization = _build_loaded_manager().settings.organization
+
+    # Проверки
     assert organization.name == company["name"]
     assert organization.inn == company["inn"]
     assert organization.bic == company["bic"]
@@ -66,72 +104,134 @@ def test_settings_manager__load_default_file__organization_matches_json(
 
 def test_settings_manager__load_default_file__names_match_json(settings_data):
     """ФИО руководителя и главного бухгалтера совпадают с settings.json."""
+    # Подготовка
+    company = settings_data["company"]
+
+    # Действия
     settings = _build_loaded_manager().settings
-    assert settings.boss_name == settings_data["company"]["boss_name"]
-    assert settings.accountant_name == settings_data["company"]["accountant_name"]
+
+    # Проверки
+    assert settings.boss_name == company["boss_name"]
+    assert settings.accountant_name == company["accountant_name"]
 
 
 def test_settings_manager__load_default_file__first_start_matches_json(
     settings_data,
 ):
     """Признак первого запуска совпадает с settings.json."""
+    # Подготовка
+    expected = settings_data["first_start"]
+
+    # Действия
     settings = _build_loaded_manager().settings
-    assert settings.first_start is settings_data["first_start"]
+
+    # Проверки
+    assert settings.first_start is expected
 
 
 def test_settings_manager__load_default_file__response_format_matches_json(
     settings_data,
 ):
     """Формат ответа совпадает с settings.json."""
+    # Подготовка
+    expected = settings_data["response_format"]
+
+    # Действия
     settings = _build_loaded_manager().settings
-    assert settings.response_format.value == settings_data["response_format"]
+
+    # Проверки
+    assert settings.response_format.value == expected
 
 
 def test_settings_manager__load_unknown_response_format__raises_validation_exception(
     settings_data, tmp_path
 ):
     """Неизвестный формат ответа вызывает исключение валидации."""
+    # Подготовка
     settings_data["response_format"] = "pdf"
-    with pytest.raises(ValidationException):
-        SettingsManager().load(_write_json(tmp_path, settings_data))
+    file_name = _write_json(tmp_path, settings_data)
+    manager = SettingsManager()
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        manager.load(file_name)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_settings_manager__load_without_company__raises_validation_exception(
     settings_data, tmp_path
 ):
     """Файл настроек без раздела company вызывает исключение валидации."""
+    # Подготовка
     settings_data.pop("company")
-    with pytest.raises(ValidationException):
-        SettingsManager().load(_write_json(tmp_path, settings_data))
+    file_name = _write_json(tmp_path, settings_data)
+    manager = SettingsManager()
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        manager.load(file_name)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_settings_manager__load_not_object__raises_validation_exception(tmp_path):
     """Файл, в котором лежит не json-объект, вызывает исключение валидации."""
-    with pytest.raises(ValidationException):
-        SettingsManager().load(_write_json(tmp_path, [1, 2, 3]))
+    # Подготовка
+    file_name = _write_json(tmp_path, [1, 2, 3])
+    manager = SettingsManager()
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        manager.load(file_name)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_settings_manager__load_non_string_file_name__raises_validation_exception():
     """Имя файла не строкой вызывает исключение валидации."""
-    with pytest.raises(ValidationException):
-        SettingsManager().load(None)
+    # Подготовка
+    manager = SettingsManager()
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        manager.load(None)
+
+    # Проверки
+    assert isinstance(exc_info.value, ValidationException)
 
 
 def test_settings_manager__load_missing_file__raises_application_exception(
     tmp_path,
 ):
     """Отсутствующий файл вызывает исключение приложения."""
+    # Подготовка
+    file_name = str(tmp_path / "missing.json")
+    manager = SettingsManager()
+
+    # Действия
     with pytest.raises(ApplicationException) as exc_info:
-        SettingsManager().load(str(tmp_path / "missing.json"))
+        manager.load(file_name)
+
+    # Проверки
     assert type(exc_info.value) is ApplicationException
 
 
 def test_settings_manager__load_broken_json__raises_application_exception(tmp_path):
     """Файл с синтаксической ошибкой json вызывает исключение приложения."""
+    # Подготовка
     path = tmp_path / "broken.json"
     path.write_text("{не json", encoding="utf-8")
+    manager = SettingsManager()
+
+    # Действия
     with pytest.raises(ApplicationException) as exc_info:
-        SettingsManager().load(str(path))
+        manager.load(str(path))
+
+    # Проверки
     assert type(exc_info.value) is ApplicationException
 
 
@@ -139,13 +239,17 @@ def test_settings_manager__load_invalid_after_success__keeps_previous_settings(
     settings_data, tmp_path
 ):
     """Неудачная загрузка не сбрасывает is_loaded и настройки прошлой загрузки."""
+    # Подготовка
     manager = _build_loaded_manager()
     settings = manager.settings
     settings_data["company"]["inn"] = "abc"
+    file_name = _write_json(tmp_path, settings_data)
 
+    # Действия
     with pytest.raises(ValidationException):
-        manager.load(_write_json(tmp_path, settings_data))
+        manager.load(file_name)
 
+    # Проверки
     assert manager.is_loaded
     assert manager.settings is settings
 
@@ -154,5 +258,12 @@ def test_settings_manager__load_from_other_directory__reads_default_file(
     tmp_path, monkeypatch
 ):
     """Файл по умолчанию ищется от корня проекта, а не от текущего каталога."""
+    # Подготовка
     monkeypatch.chdir(tmp_path)
-    assert _build_loaded_manager().is_loaded
+    manager = SettingsManager()
+
+    # Действия
+    manager.load()
+
+    # Проверки
+    assert manager.is_loaded
