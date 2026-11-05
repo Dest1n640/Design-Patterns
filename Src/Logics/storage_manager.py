@@ -95,7 +95,7 @@ class StorageManager(AbstractManager):
         if settings.first_start:
             self._is_loaded = self._create_default_data()
 
-    def convert(self) -> bool:
+    def load(self) -> bool:
         """Восстанавливает справочники из загруженного JSON через DeserializeFactory."""
         data = Validation.validate_instance(
             self._data, dict, "storage", "Хранилище должно быть JSON-объектом"
