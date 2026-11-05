@@ -125,6 +125,8 @@ class StorageManager(AbstractManager):
                 raise ValidationException(field, "Имена моделей не должны повторяться")
             collections[field] = collection
 
+        for field, collection in collections.items():
+            setattr(self, f"_{field}", collection)
         return True
 
     def _create_default_data(self) -> bool:
