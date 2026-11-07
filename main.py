@@ -10,7 +10,7 @@ from Src.Logics.storage_manager import StorageManager
 
 # Запуск: читает settings.json и формирует данные хранилища.
 settings_manager = SettingsManager()
-settings_manager.load()
+settings_manager.read()
 storage_manager = StorageManager()
 storage_manager.start(settings_manager.settings)
 report_factory = ReportFactory(settings_manager.settings)

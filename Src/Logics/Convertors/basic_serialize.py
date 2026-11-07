@@ -2,7 +2,7 @@ from Src.Core.abstract_convertor import AbstractConvertor
 from Src.Core.common import Common
 
 
-class BasicConvertor(AbstractConvertor):
+class BasicSerialize(AbstractConvertor):
     """Конвертор простых типов: числовые, строковые и пустые (None) свойства."""
 
     def convert(self, source: object) -> dict:

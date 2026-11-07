@@ -18,8 +18,8 @@ class AbstractManager(ABC):
         self._is_loaded: bool = False
         self._data: object = None
 
-    def load(self, file_name: str = "") -> None:
-        """Читает json-файл (по умолчанию — из корня проекта) и запускает convert."""
+    def read(self, file_name: str = "") -> None:
+        """Читает json-файл (по умолчанию — из корня проекта) и запускает load."""
         # Файл по умолчанию ищется от корня проекта, а не от текущего каталога.
         if isinstance(file_name, str) and not file_name.strip():
             file_name = str(self._PROJECT_ROOT / self._DEFAULT_FILE_NAME)
@@ -32,12 +32,12 @@ class AbstractManager(ABC):
                 f"Не удалось прочитать файл '{file_name}'"
             ) from ex
         # При ошибке остаются признак и имя файла прошлой успешной загрузки.
-        if self.convert():
+        if self.load():
             self._file_name = file_name
             self._is_loaded = True
 
     @abstractmethod
-    def convert(self) -> bool:
+    def load(self) -> bool:
         """Преобразует загруженные данные; возвращает True при успехе."""
 
     @property

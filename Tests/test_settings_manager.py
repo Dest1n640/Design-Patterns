@@ -19,29 +19,29 @@ def _write_json(directory: Path, data: object) -> str:
 def _build_loaded_manager() -> SettingsManager:
     """Возвращает менеджер настроек, загруженный из файла по умолчанию."""
     manager = SettingsManager()
-    manager.load()
+    manager.read()
     return manager
 
 
-def test_settings_manager__load_default_file__does_not_raise():
+def test_settings_manager__read_default_file__does_not_raise():
     """Загрузка настроек из файла по умолчанию проходит без исключений."""
     # Подготовка
     manager = SettingsManager()
 
     # Действия
-    manager.load()
+    manager.read()
 
     # Проверки
     assert manager.is_loaded
 
 
-def test_settings_manager__load_default_file__settings_not_empty():
+def test_settings_manager__read_default_file__settings_not_empty():
     """После загрузки модель настроек заполнена организацией."""
     # Подготовка
     manager = SettingsManager()
 
     # Действия
-    manager.load()
+    manager.read()
 
     # Проверки
     assert manager.settings is not None
@@ -60,13 +60,13 @@ def test_settings_manager__two_instances__same_object():
     assert first is second
 
 
-def test_settings_manager__load_default_file__is_loaded_true():
+def test_settings_manager__read_default_file__is_loaded_true():
     """После успешной загрузки признак is_loaded равен True."""
     # Подготовка
     manager = SettingsManager()
 
     # Действия
-    manager.load()
+    manager.read()
 
     # Проверки
     assert manager.is_loaded
@@ -84,7 +84,7 @@ def test_settings_manager__two_instances__share_settings():
     assert settings is manager.settings
 
 
-def test_settings_manager__load_default_file__organization_matches_json(
+def test_settings_manager__read_default_file__organization_matches_json(
     settings_data,
 ):
     """Реквизиты организации совпадают с разделом company в settings.json."""
@@ -102,7 +102,7 @@ def test_settings_manager__load_default_file__organization_matches_json(
     assert organization.legal_form == company["legal_form"]
 
 
-def test_settings_manager__load_default_file__names_match_json(settings_data):
+def test_settings_manager__read_default_file__names_match_json(settings_data):
     """ФИО руководителя и главного бухгалтера совпадают с settings.json."""
     # Подготовка
     company = settings_data["company"]
@@ -115,7 +115,7 @@ def test_settings_manager__load_default_file__names_match_json(settings_data):
     assert settings.accountant_name == company["accountant_name"]
 
 
-def test_settings_manager__load_default_file__first_start_matches_json(
+def test_settings_manager__read_default_file__first_start_matches_json(
     settings_data,
 ):
     """Признак первого запуска совпадает с settings.json."""
@@ -129,7 +129,7 @@ def test_settings_manager__load_default_file__first_start_matches_json(
     assert settings.first_start is expected
 
 
-def test_settings_manager__load_default_file__response_format_matches_json(
+def test_settings_manager__read_default_file__response_format_matches_json(
     settings_data,
 ):
     """Формат ответа совпадает с settings.json."""
@@ -143,7 +143,7 @@ def test_settings_manager__load_default_file__response_format_matches_json(
     assert settings.response_format.value == expected
 
 
-def test_settings_manager__load_unknown_response_format__raises_validation_exception(
+def test_settings_manager__read_unknown_response_format__raises_validation_exception(
     settings_data, tmp_path
 ):
     """Неизвестный формат ответа вызывает исключение валидации."""
@@ -154,13 +154,13 @@ def test_settings_manager__load_unknown_response_format__raises_validation_excep
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        manager.load(file_name)
+        manager.read(file_name)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_settings_manager__load_without_company__raises_validation_exception(
+def test_settings_manager__read_without_company__raises_validation_exception(
     settings_data, tmp_path
 ):
     """Файл настроек без раздела company вызывает исключение валидации."""
@@ -171,13 +171,13 @@ def test_settings_manager__load_without_company__raises_validation_exception(
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        manager.load(file_name)
+        manager.read(file_name)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_settings_manager__load_not_object__raises_validation_exception(tmp_path):
+def test_settings_manager__read_not_object__raises_validation_exception(tmp_path):
     """Файл, в котором лежит не json-объект, вызывает исключение валидации."""
     # Подготовка
     file_name = _write_json(tmp_path, [1, 2, 3])
@@ -185,26 +185,26 @@ def test_settings_manager__load_not_object__raises_validation_exception(tmp_path
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        manager.load(file_name)
+        manager.read(file_name)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_settings_manager__load_non_string_file_name__raises_validation_exception():
+def test_settings_manager__read_non_string_file_name__raises_validation_exception():
     """Имя файла не строкой вызывает исключение валидации."""
     # Подготовка
     manager = SettingsManager()
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        manager.load(None)
+        manager.read(None)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_settings_manager__load_missing_file__raises_application_exception(
+def test_settings_manager__read_missing_file__raises_application_exception(
     tmp_path,
 ):
     """Отсутствующий файл вызывает исключение приложения."""
@@ -214,13 +214,13 @@ def test_settings_manager__load_missing_file__raises_application_exception(
 
     # Действия
     with pytest.raises(ApplicationException) as exc_info:
-        manager.load(file_name)
+        manager.read(file_name)
 
     # Проверки
     assert type(exc_info.value) is ApplicationException
 
 
-def test_settings_manager__load_broken_json__raises_application_exception(tmp_path):
+def test_settings_manager__read_broken_json__raises_application_exception(tmp_path):
     """Файл с синтаксической ошибкой json вызывает исключение приложения."""
     # Подготовка
     path = tmp_path / "broken.json"
@@ -229,13 +229,13 @@ def test_settings_manager__load_broken_json__raises_application_exception(tmp_pa
 
     # Действия
     with pytest.raises(ApplicationException) as exc_info:
-        manager.load(str(path))
+        manager.read(str(path))
 
     # Проверки
     assert type(exc_info.value) is ApplicationException
 
 
-def test_settings_manager__load_invalid_after_success__keeps_previous_settings(
+def test_settings_manager__read_invalid_after_success__keeps_previous_settings(
     settings_data, tmp_path
 ):
     """Неудачная загрузка не сбрасывает is_loaded и настройки прошлой загрузки."""
@@ -247,14 +247,14 @@ def test_settings_manager__load_invalid_after_success__keeps_previous_settings(
 
     # Действия
     with pytest.raises(ValidationException):
-        manager.load(file_name)
+        manager.read(file_name)
 
     # Проверки
     assert manager.is_loaded
     assert manager.settings is settings
 
 
-def test_settings_manager__load_from_other_directory__reads_default_file(
+def test_settings_manager__read_from_other_directory__reads_default_file(
     tmp_path, monkeypatch
 ):
     """Файл по умолчанию ищется от корня проекта, а не от текущего каталога."""
@@ -263,7 +263,7 @@ def test_settings_manager__load_from_other_directory__reads_default_file(
     manager = SettingsManager()
 
     # Действия
-    manager.load()
+    manager.read()
 
     # Проверки
     assert manager.is_loaded

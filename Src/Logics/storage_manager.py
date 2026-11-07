@@ -3,10 +3,11 @@ from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
 from Src.Core.common import Common
-from Src.Core.exception import ApplicationException
+from Src.Core.exception import ApplicationException, ValidationException
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
-from Src.Logics.convert_factory import ConvertFactory
+from Src.Logics.deserialize_factory import DeserializeFactory
+from Src.Logics.serialize_factory import SerializeFactory
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 from Src.Models.nomenclature_model import NomenclatureModel
@@ -91,11 +92,36 @@ class StorageManager(AbstractManager):
         if self.is_loaded:
             return
         self._settings = settings
-        # Загрузка сохранённых данных — следующий этап, коллекции остаются пустыми.
         if settings.first_start:
-            self._is_loaded = self.convert()
+            self._is_loaded = self._create_default_data()
 
-    def convert(self) -> bool:
+    def load(self) -> bool:
+        """Восстанавливает справочники из загруженного JSON через DeserializeFactory."""
+        data = Validation.validate_instance(
+            self._data, dict, "storage", "Хранилище должно быть JSON-объектом"
+        )
+        collection_types = Common.get_collection_types(self)
+        factory = DeserializeFactory()
+        collections = {}
+        for field, model_type in collection_types.items():
+            source = Validation.validate_instance(
+                data.get(field), list, field, "Коллекция должна быть списком"
+            )
+            models = factory.convert(source)
+            for model in models:
+                Validation.validate_instance(
+                    model, model_type, field, "Некорректный тип модели в коллекции"
+                )
+            collection = self._by_name(models)
+            if len(collection) != len(models):
+                raise ValidationException(field, "Имена моделей не должны повторяться")
+            collections[field] = collection
+
+        for field, collection in collections.items():
+            setattr(self, f"_{field}", collection)
+        return True
+
+    def _create_default_data(self) -> bool:
         """Формирует первичные данные фабричными методами доменных моделей."""
         self._measurement_units = self._by_name(
             MeasurementUnitModel.create_default_units()
@@ -127,10 +153,9 @@ class StorageManager(AbstractManager):
         return True
 
     def save(self, file_name: str) -> None:
-        """Выгружает все справочники хранилища в json-файл через ConvertFactory."""
+        """Выгружает все справочники хранилища в json-файл через SerializeFactory."""
         file_name = Validation.validate_string(file_name, "file_name")
-        factory = ConvertFactory()
-        # Справочники — это свойства-списки; settings и is_loaded не выгружаются.
+        factory = SerializeFactory()
         data = {
             field: factory.convert(getattr(self, field))
             for field in Common.get_fields(self)
