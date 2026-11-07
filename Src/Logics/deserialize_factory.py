@@ -22,6 +22,21 @@ from Src.Models.settings_model import SettingsModel
 from Src.Models.technological_map_model import TechnologicalMapModel
 from Src.Models.warehouse_model import WarehouseModel
 
+mapping = {
+    "DishModel": DishModel,
+    "IngredientModel": IngredientModel,
+    "MeasurementUnitModel": MeasurementUnitModel,
+    "NomenclatureGroupModel": NomenclatureGroupModel,
+    "NomenclatureModel": NomenclatureModel,
+    "OrganizationModel": OrganizationModel,
+    "PremisesModel": PremisesModel,
+    "ProductionShopModel": ProductionShopModel,
+    "RestaurantModel": RestaurantModel,
+    "SettingsModel": SettingsModel,
+    "TechnologicalMapModel": TechnologicalMapModel,
+    "WarehouseModel": WarehouseModel,
+}
+
 
 class DeserializeFactory(AbstractConvertor):
     """Фабрика восстановления моделей из словарей и списков JSON."""
@@ -36,21 +51,6 @@ class DeserializeFactory(AbstractConvertor):
             raise ValidationException("source", "Ожидаются данные из JSON")
         if "type" not in source:
             return CollectionDeserialize(self.convert).convert(source)
-
-        mapping = {
-            "DishModel": DishModel,
-            "IngredientModel": IngredientModel,
-            "MeasurementUnitModel": MeasurementUnitModel,
-            "NomenclatureGroupModel": NomenclatureGroupModel,
-            "NomenclatureModel": NomenclatureModel,
-            "OrganizationModel": OrganizationModel,
-            "PremisesModel": PremisesModel,
-            "ProductionShopModel": ProductionShopModel,
-            "RestaurantModel": RestaurantModel,
-            "SettingsModel": SettingsModel,
-            "TechnologicalMapModel": TechnologicalMapModel,
-            "WarehouseModel": WarehouseModel,
-        }
 
         type_name = source.get("type")
         if not isinstance(type_name, str) or type_name not in mapping:
