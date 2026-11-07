@@ -100,15 +100,7 @@ class StorageManager(AbstractManager):
         data = Validation.validate_instance(
             self._data, dict, "storage", "Хранилище должно быть JSON-объектом"
         )
-        collection_types = {
-            "measurement_units": MeasurementUnitModel,
-            "nomenclature_groups": NomenclatureGroupModel,
-            "nomenclature": NomenclatureModel,
-            "restaurants": RestaurantModel,
-            "production_shops": ProductionShopModel,
-            "warehouses": WarehouseModel,
-            "technological_maps": TechnologicalMapModel,
-        }
+        collection_types = Common.get_collection_types(self)
         factory = DeserializeFactory()
         collections = {}
         for field, model_type in collection_types.items():

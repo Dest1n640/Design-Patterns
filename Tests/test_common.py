@@ -6,9 +6,14 @@ import pytest
 
 from Src.Core.common import Common
 from Src.Core.exception import ValidationException
+from Src.Logics.storage_manager import StorageManager
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
+from Src.Models.nomenclature_model import NomenclatureModel
+from Src.Models.production_shop_model import ProductionShopModel
+from Src.Models.restaurant_model import RestaurantModel
 from Src.Models.technological_map_model import TechnologicalMapModel
+from Src.Models.warehouse_model import WarehouseModel
 
 
 def test_common__get_fields__public_properties_only(units):
@@ -54,6 +59,26 @@ def test_common__get_fields_none__raises():
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
+
+
+def test_common__get_collection_types__empty_storage__model_types():
+    """Типы всех коллекций определяются до заполнения хранилища."""
+    # Подготовка
+    manager = StorageManager()
+
+    # Действия
+    collection_types = Common.get_collection_types(manager)
+
+    # Проверки
+    assert collection_types == {
+        "measurement_units": MeasurementUnitModel,
+        "nomenclature_groups": NomenclatureGroupModel,
+        "nomenclature": NomenclatureModel,
+        "restaurants": RestaurantModel,
+        "production_shops": ProductionShopModel,
+        "warehouses": WarehouseModel,
+        "technological_maps": TechnologicalMapModel,
+    }
 
 
 def test_common__get_constructor_parameters__model__constructor_parameters():
