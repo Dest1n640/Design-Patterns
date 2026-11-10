@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 
 
 class AbstractConvertor(ABC):
-    """Конвертор: превращает объект в словарь «наименование поля → данные поля»."""
+    """Общий интерфейс сериализации и десериализации данных."""
 
     @abstractmethod
-    def convert(self, source: object) -> dict:
-        """Преобразует объект в словарь."""
+    def convert(self, source: object) -> object:
+        """Преобразует исходные данные в целевое представление."""

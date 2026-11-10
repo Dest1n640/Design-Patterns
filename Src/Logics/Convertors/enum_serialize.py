@@ -4,7 +4,7 @@ from Src.Core.abstract_convertor import AbstractConvertor
 from Src.Core.common import Common
 
 
-class EnumConvertor(AbstractConvertor):
+class EnumSerialize(AbstractConvertor):
     """Конвертор перечислений: в словарь попадают только свойства типа Enum."""
 
     def convert(self, source: object) -> dict:

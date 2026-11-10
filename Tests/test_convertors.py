@@ -6,11 +6,11 @@ import pytest
 
 from Src.Core.exception import ValidationException
 from Src.Core.position_type import PositionType
-from Src.Logics.convert_factory import ConvertFactory
-from Src.Logics.Convertors.basic_convertor import BasicConvertor
-from Src.Logics.Convertors.datetime_convertor import DatetimeConvertor
-from Src.Logics.Convertors.enum_convertor import EnumConvertor
-from Src.Logics.Convertors.reference_convertor import ReferenceConvertor
+from Src.Logics.Convertors.basic_serialize import BasicSerialize
+from Src.Logics.Convertors.datetime_serialize import DatetimeSerialize
+from Src.Logics.Convertors.enum_serialize import EnumSerialize
+from Src.Logics.Convertors.reference_serialize import ReferenceSerialize
+from Src.Logics.serialize_factory import SerializeFactory
 from Src.Models.nomenclature_model import NomenclatureModel
 from Src.Models.technological_map_model import TechnologicalMapModel
 
@@ -41,13 +41,13 @@ def flour(groups, units) -> NomenclatureModel:
     )
 
 
-def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
+def test_basic_serialize__unit_with_reference__numbers_and_strings_only(units):
     """Числа и строки попадают в словарь, ссылка на базовую единицу — нет."""
     # Подготовка
     kilogram = units["килограмм"]
 
     # Действия
-    result = BasicConvertor().convert(kilogram)
+    result = BasicSerialize().convert(kilogram)
 
     # Проверки
     assert result == {
@@ -58,22 +58,22 @@ def test_basic_convertor__unit_with_reference__numbers_and_strings_only(units):
     }
 
 
-def test_basic_convertor__none_field__kept_as_none(units):
+def test_basic_serialize__none_field__kept_as_none(units):
     """Пустое свойство (base_unit=None) попадает в словарь со значением None."""
     # Подготовка
     gram = units["грамм"]
 
     # Действия
-    result = BasicConvertor().convert(gram)
+    result = BasicSerialize().convert(gram)
 
     # Проверки
     assert result["base_unit"] is None
 
 
-def test_basic_convertor__composite_fields__skipped(flour):
+def test_basic_serialize__composite_fields__skipped(flour):
     """Ссылки на сущности и enum пропускаются."""
     # Подготовка
-    convertor = BasicConvertor()
+    convertor = BasicSerialize()
 
     # Действия
     result = convertor.convert(flour)
@@ -86,22 +86,22 @@ def test_basic_convertor__composite_fields__skipped(flour):
     }
 
 
-def test_datetime_convertor__date_field__iso_string():
+def test_datetime_serialize__date_field__iso_string():
     """Дата попадает в словарь строкой ISO 8601, остальные свойства — нет."""
     # Подготовка
     model = DatedStub()
 
     # Действия
-    result = DatetimeConvertor().convert(model)
+    result = DatetimeSerialize().convert(model)
 
     # Проверки
     assert result == {"created": "2026-10-21T12:30:00"}
 
 
-def test_datetime_convertor__no_dates__empty(flour):
+def test_datetime_serialize__no_dates__empty(flour):
     """У модели без дат получается пустой словарь."""
     # Подготовка
-    convertor = DatetimeConvertor()
+    convertor = DatetimeSerialize()
 
     # Действия
     result = convertor.convert(flour)
@@ -110,10 +110,10 @@ def test_datetime_convertor__no_dates__empty(flour):
     assert result == {}
 
 
-def test_enum_convertor__enum_field__value(flour):
+def test_enum_serialize__enum_field__value(flour):
     """Enum попадает в словарь значением элемента, остальные свойства — нет."""
     # Подготовка
-    convertor = EnumConvertor()
+    convertor = EnumSerialize()
 
     # Действия
     result = convertor.convert(flour)
@@ -122,23 +122,23 @@ def test_enum_convertor__enum_field__value(flour):
     assert result == {"position_type": "raw_material"}
 
 
-def test_enum_convertor__no_enums__empty(units):
+def test_enum_serialize__no_enums__empty(units):
     """У модели без Enum получается пустой словарь."""
     # Подготовка
     kilogram = units["килограмм"]
 
     # Действия
-    result = EnumConvertor().convert(kilogram)
+    result = EnumSerialize().convert(kilogram)
 
     # Проверки
     assert result == {}
 
 
-def test_reference_convertor__references__nested_dicts(flour, groups, units):
+def test_reference_serialize__references__nested_dicts(flour, groups, units):
     """Ссылки на сущности вкладываются в словарь целиком, со всеми полями."""
     # Подготовка
-    factory = ConvertFactory()
-    convertor = ReferenceConvertor(factory.convert)
+    factory = SerializeFactory()
+    convertor = ReferenceSerialize(factory.convert)
 
     # Действия
     result = convertor.convert(flour)
@@ -150,10 +150,10 @@ def test_reference_convertor__references__nested_dicts(flour, groups, units):
     }
 
 
-def test_reference_convertor__none_reference__skipped(units):
+def test_reference_serialize__none_reference__skipped(units):
     """Пустая ссылка (base_unit=None) в словарь не попадает."""
     # Подготовка
-    convertor = ReferenceConvertor(ConvertFactory().convert)
+    convertor = ReferenceSerialize(SerializeFactory().convert)
 
     # Действия
     result = convertor.convert(units["грамм"])
@@ -165,10 +165,10 @@ def test_reference_convertor__none_reference__skipped(units):
 @pytest.mark.parametrize(
     "convertor",
     [
-        BasicConvertor(),
-        DatetimeConvertor(),
-        EnumConvertor(),
-        ReferenceConvertor(ConvertFactory().convert),
+        BasicSerialize(),
+        DatetimeSerialize(),
+        EnumSerialize(),
+        ReferenceSerialize(SerializeFactory().convert),
     ],
 )
 def test_convertor__none__raises(convertor):
@@ -184,13 +184,13 @@ def test_convertor__none__raises(convertor):
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_convert_factory__model__all_convertors_merged(units):
+def test_serialize_factory__model__all_convertors_merged(units):
     """Словарь модели объединяет тип, простые поля и вложенные ссылки."""
     # Подготовка
     kilogram = units["килограмм"]
 
     # Действия
-    result = ConvertFactory().convert(kilogram)
+    result = SerializeFactory().convert(kilogram)
 
     # Проверки
     assert result == {
@@ -210,13 +210,13 @@ def test_convert_factory__model__all_convertors_merged(units):
     }
 
 
-def test_convert_factory__datetime__merged():
+def test_serialize_factory__datetime__merged():
     """Дата попадает в общий словарь вместе с простыми полями."""
     # Подготовка
     model = DatedStub()
 
     # Действия
-    result = ConvertFactory().convert(model)
+    result = SerializeFactory().convert(model)
 
     # Проверки
     assert result == {
@@ -226,22 +226,22 @@ def test_convert_factory__datetime__merged():
     }
 
 
-def test_convert_factory__list__list_of_dicts(units):
+def test_serialize_factory__list__list_of_dicts(units):
     """Список объектов превращается в список словарей в том же порядке."""
     # Подготовка
     models = list(units.values())
 
     # Действия
-    result = ConvertFactory().convert(models)
+    result = SerializeFactory().convert(models)
 
     # Проверки
     assert [item["name"] for item in result] == list(units)
 
 
-def test_convert_factory__dict__dict_of_dicts(units):
+def test_serialize_factory__dict__dict_of_dicts(units):
     """Словарь объектов превращается в словарь словарей с теми же ключами."""
     # Подготовка
-    convertor = ConvertFactory()
+    convertor = SerializeFactory()
 
     # Действия
     result = convertor.convert(units)
@@ -252,11 +252,11 @@ def test_convert_factory__dict__dict_of_dicts(units):
     }
 
 
-def test_convert_factory__composite__structure_kept(groups, units):
+def test_serialize_factory__composite__structure_kept(groups, units):
     """Вложенные списки сохраняют структуру: карта → блюда → состав."""
     # Подготовка
     recipe = TechnologicalMapModel.create_technological_map(groups, units)
-    factory = ConvertFactory()
+    factory = SerializeFactory()
 
     # Действия
     result = factory.convert(recipe)
@@ -279,10 +279,10 @@ def test_convert_factory__composite__structure_kept(groups, units):
     }
 
 
-def test_convert_factory__none__raises():
+def test_serialize_factory__none__raises():
     """None вместо объекта вызывает исключение валидации."""
     # Подготовка
-    factory = ConvertFactory()
+    factory = SerializeFactory()
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:

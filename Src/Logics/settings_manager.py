@@ -32,7 +32,7 @@ class SettingsManager(AbstractManager):
         """Возвращает модель настроек."""
         return self._settings
 
-    def convert(self) -> bool:
+    def load(self) -> bool:
         """Собирает модель настроек из company, first_start и response_format."""
         data = Validation.validate_instance(
             self._data, dict, "settings", "Настройки должны быть json-объектом"

@@ -315,3 +315,71 @@ def test_storage_manager__save__all_collections_in_json(tmp_path):
     assert set(data) == set(COLLECTIONS)
     units = {unit["name"]: unit for unit in data["measurement_units"]}
     assert units["килограмм"]["base_unit"] == units["грамм"]
+
+
+def test_storage_manager__read_empty_collections__loaded_and_empty(tmp_path):
+    """Пустые коллекции загружаются без создания первичных данных."""
+    # Подготовка
+    manager = _build_started_manager()
+    settings = manager.settings
+    file_name = tmp_path / "storage.json"
+    file_name.write_text(json.dumps(dict.fromkeys(COLLECTIONS, [])), encoding="utf-8")
+
+    # Действия
+    manager.read(str(file_name))
+
+    # Проверки
+    assert manager.is_loaded
+    assert manager.settings is settings
+    assert all(getattr(manager, field) == [] for field in COLLECTIONS)
+
+
+@pytest.mark.parametrize("data", [None, [], {}])
+def test_storage_manager__read_invalid_root__state_kept(tmp_path, data):
+    """Неверный корень JSON не заменяет уже сформированные справочники."""
+    # Подготовка
+    manager = _build_started_manager()
+    originals = {field: getattr(manager, field) for field in COLLECTIONS}
+    file_name = tmp_path / "storage.json"
+    file_name.write_text(json.dumps(data), encoding="utf-8")
+
+    # Действия
+    with pytest.raises(ValidationException):
+        manager.read(str(file_name))
+
+    # Проверки
+    assert manager.is_loaded
+    for field, models in originals.items():
+        assert _same_objects(getattr(manager, field), models)
+
+
+@pytest.mark.parametrize(
+    "collection",
+    [
+        None,
+        {},
+        [{"type": "MeasurementUnitModel", "name": "грамм", "coefficient": 1}],
+        [{"type": "TechnologicalMapModel", "name": "Карта"}] * 2,
+        [{"type": "UnknownModel"}],
+    ],
+)
+def test_storage_manager__read_invalid_collection__state_kept(tmp_path, collection):
+    """Ошибка в последней коллекции не приводит к частичному обновлению хранилища."""
+    # Подготовка
+    manager = _build_started_manager()
+    originals = {field: getattr(manager, field) for field in COLLECTIONS}
+    file_name = tmp_path / "storage.json"
+    manager.save(str(file_name))
+    data = json.loads(file_name.read_text(encoding="utf-8"))
+    data["measurement_units"][0]["name"] = "Новое имя из файла"
+    data["technological_maps"] = collection
+    file_name.write_text(json.dumps(data), encoding="utf-8")
+
+    # Действия
+    with pytest.raises(ValidationException):
+        manager.read(str(file_name))
+
+    # Проверки
+    assert manager.is_loaded
+    for field, models in originals.items():
+        assert _same_objects(getattr(manager, field), models)

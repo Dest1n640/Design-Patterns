@@ -5,10 +5,10 @@ from Src.Core.abstract_model import AbstractModel
 from Src.Core.common import Common
 
 
-class ReferenceConvertor(AbstractConvertor):
+class ReferenceSerialize(AbstractConvertor):
     """Конвертор ссылок: свойства-сущности вкладываются в словарь целиком."""
 
-    def __init__(self, convert: Callable[[object], dict]) -> None:
+    def __init__(self, convert: Callable[[object], object]) -> None:
         """Конструктор: convert — метод фабрики, строящий полный словарь сущности."""
         self.__convert = convert
 

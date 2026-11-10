@@ -4,7 +4,7 @@ from Src.Core.abstract_convertor import AbstractConvertor
 from Src.Core.common import Common
 
 
-class DatetimeConvertor(AbstractConvertor):
+class DatetimeSerialize(AbstractConvertor):
     """Конвертор дат: в словарь попадают только свойства типа datetime."""
 
     def convert(self, source: object) -> dict:
