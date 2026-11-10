@@ -1,4 +1,4 @@
-import inspect
+import inspect # интроспекция
 from collections.abc import Mapping
 from typing import get_args, get_origin, get_type_hints
 
