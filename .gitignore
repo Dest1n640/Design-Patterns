@@ -1,4 +1,9 @@
 # Python-generated files
+.env
+/postgres-data/
+/mssql-data/
+/pgadmin/
+/backup/
 __pycache__/
 *.py[oc]
 build/
