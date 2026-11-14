@@ -1,4 +1,8 @@
 import json
+import os
+from copy import copy
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from threading import RLock
 from typing import Self
 
@@ -6,9 +10,9 @@ from Src.Core.abstract_manager import AbstractManager
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.common import Common
 from Src.Core.exception import (
-    ApplicationException,
     ConflictException,
     NotFoundException,
+    PersistenceException,
     ValidationException,
 )
 from Src.Core.named_model import NamedModel
@@ -31,6 +35,7 @@ class StorageManager(AbstractManager):
     """Класс менеджера хранилища — singleton, хранит справочники доменных моделей."""
 
     _instance = None
+    _DEFAULT_FILE_NAME = "tmp/storage.json"
 
     def __new__(cls) -> Self:
         """Возвращает единственный экземпляр менеджера хранилища."""
@@ -45,9 +50,19 @@ class StorageManager(AbstractManager):
         super().__init__()
         self._lock = RLock()
         self._settings: SettingsModel | None = None
+        self._organization_id: str | None = None
         self._collections: dict[str, dict[str, AbstractModel]] = {
             name: {} for name in ENTITY_TYPES
         }
+
+    def __enter__(self) -> Self:
+        """Блокирует хранилище на время составной операции и сериализации."""
+        self._lock.acquire()
+        return self
+
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+        """Освобождает блокировку, включая выход из операции по исключению."""
+        self._lock.release()
 
     @property
     def settings(self) -> SettingsModel | None:
@@ -118,7 +133,7 @@ class StorageManager(AbstractManager):
             model = factory.convert(source, existing)
             if any(entity.id == model.id for entity in existing):
                 raise ConflictException("id", "Сущность с таким кодом уже существует")
-            self._collections = self._merge_models(factory.models)
+            self._commit_collections(self._merge_models(factory.models))
             return model
 
     def update_entity(
@@ -128,15 +143,15 @@ class StorageManager(AbstractManager):
         with self._lock:
             original = self.get_entity(entity_type, entity_id)
             changes = self._entity_source(entity_type, data)
-            parameters = Common.get_constructor_parameters(type(original))
+            field_types = Common.get_field_types(type(original))
             for field in changes:
-                if field not in parameters and field not in {"id", "type"}:
+                if field not in field_types and field != "type":
                     raise ValidationException(field, "Поле недоступно для изменения")
             serialized = SerializeFactory().convert(original)
             source = {
                 field: value
                 for field, value in serialized.items()
-                if field in parameters or field == "id"
+                if field in field_types
             } | changes
             existing = [model for model in self._all_models() if model is not original]
             factory = DeserializeFactory()
@@ -150,8 +165,13 @@ class StorageManager(AbstractManager):
             if id_changed:
                 del collections[entity_type][original.id]
             collections[entity_type][updated.id] = original
+            previous = copy(original)
             original.replace_state(updated)
-            self._collections = collections
+            try:
+                self._commit_collections(collections)
+            except Exception:
+                original.replace_state(previous)
+                raise
             return original
 
     def delete_entity(self, entity_type: str, entity_id: str) -> None:
@@ -159,7 +179,18 @@ class StorageManager(AbstractManager):
         with self._lock:
             model = self.get_entity(entity_type, entity_id)
             self._ensure_unreferenced(model)
-            del self._collections[entity_type][entity_id]
+            collections = self._collections.copy()
+            collections[entity_type] = collections[entity_type].copy()
+            del collections[entity_type][entity_id]
+            self._commit_collections(collections)
+
+    def _commit_collections(
+        self, collections: dict[str, dict[str, AbstractModel]]
+    ) -> None:
+        """Сохраняет изменения на диск перед заменой текущих коллекций."""
+        if self._file_name:
+            self._write_snapshot(self._file_name, collections)
+        self._collections = collections
 
     def _entity_source(self, entity_type: str, data: dict) -> dict:
         """Проверяет коллекцию и тип входных данных, дополняя их меткой модели."""
@@ -198,6 +229,8 @@ class StorageManager(AbstractManager):
 
     def _ensure_unreferenced(self, model: AbstractModel) -> None:
         """Запрещает удаление и смену кода при входящих ссылках на сущность."""
+        if model.id == self._organization_id:
+            raise ConflictException("id", "Организация используется настройками")
         owners = self._all_models()
         if self._settings is not None:
             owners.append(self._settings)
@@ -230,17 +263,59 @@ class StorageManager(AbstractManager):
         except KeyError as ex:
             raise NotFoundException(f"Коллекция '{entity_type}' не найдена") from ex
 
-    def start(self, settings: SettingsModel) -> None:
-        """Запускает хранилище: при первом старте формирует первичные данные."""
+    def start(self, settings: SettingsModel, file_name: str = "") -> None:
+        """Загружает сохранённые данные или создаёт и сохраняет начальное состояние."""
         settings = Validation.validate_instance(
             settings, SettingsModel, "settings", "Настройки указаны некорректно"
         )
-        # Повторный запуск не пересоздаёт уже сформированные данные.
-        if self.is_loaded:
-            return
-        self._settings = settings
-        if settings.first_start:
-            self._is_loaded = self._create_default_data()
+        with self._lock:
+            if self.is_loaded:
+                if self._settings is None:
+                    self._settings = settings
+                    self._sync_organization()
+                return
+            if isinstance(file_name, str) and not file_name.strip():
+                file_name = str(self._PROJECT_ROOT / self._DEFAULT_FILE_NAME)
+            file_name = Validation.validate_string(file_name, "file_name")
+            previous = (
+                self._collections,
+                self._settings,
+                self._organization_id,
+                self._file_name,
+                self._is_loaded,
+                self._data,
+            )
+            self._settings = settings
+            try:
+                if Path(file_name).exists():
+                    self.read(file_name)
+                    if self._data.get("organization_id") != self._organization_id:
+                        self.save(file_name)
+                else:
+                    self._collections = (
+                        self._create_default_data()
+                        if settings.first_start
+                        else {name: {} for name in ENTITY_TYPES}
+                    )
+                    self._organization_id = None
+                    self._sync_organization()
+                    self.save(file_name)
+            except Exception:
+                (
+                    self._collections,
+                    self._settings,
+                    self._organization_id,
+                    self._file_name,
+                    self._is_loaded,
+                    self._data,
+                ) = previous
+                raise
+
+    def read(self, file_name: str = "") -> None:
+        """Загружает файл под общей блокировкой и выбирает его для автосохранения."""
+        with self._lock:
+            super().read(file_name)
+            self._file_name = str(Path(self._file_name).absolute())
 
     def load(self) -> bool:
         """Восстанавливает справочники из загруженного JSON через DeserializeFactory."""
@@ -280,10 +355,36 @@ class StorageManager(AbstractManager):
             field = collection_names[type(model)]
             collections[field].setdefault(model.id, model)
 
+        organization_id = data.get("organization_id")
+        if organization_id is not None:
+            organization_id = Validation.validate_string(
+                organization_id, "organization_id"
+            )
+            if organization_id not in collections["organizations"]:
+                raise ValidationException(
+                    "organization_id", "Организация настроек отсутствует в хранилище"
+                )
         self._collections = collections
+        self._organization_id = organization_id
+        self._sync_organization()
         return True
 
-    def _create_default_data(self) -> bool:
+    def _sync_organization(self) -> None:
+        """Связывает настройки с активной организацией из хранилища."""
+        if self._settings is None:
+            return
+        organizations = self._collections["organizations"]
+        if self._organization_id is None:
+            if organizations:
+                self._organization_id = next(iter(organizations))
+            elif self._settings.organization is not None:
+                organization = self._settings.organization
+                organizations[organization.id] = organization
+                self._organization_id = organization.id
+        if self._organization_id is not None:
+            self._settings.organization = organizations[self._organization_id]
+
+    def _create_default_data(self) -> dict[str, dict[str, AbstractModel]]:
         """Формирует первичные данные фабричными методами доменных моделей."""
         units = self._by_name(MeasurementUnitModel.create_default_units())
         groups = self._by_name(NomenclatureGroupModel.create_default_groups())
@@ -318,23 +419,48 @@ class StorageManager(AbstractManager):
                 if isinstance(ingredient, IngredientModel)
             ],
         }
+        collections = {name: {} for name in ENTITY_TYPES}
         for field, models in defaults.items():
-            self._collections[field] = {model.id: model for model in models}
-        return True
+            collections[field] = {model.id: model for model in models}
+        return collections
 
     def save(self, file_name: str) -> None:
-        """Выгружает все справочники хранилища в json-файл через SerializeFactory."""
+        """Атомарно сохраняет все коллекции и выбирает файл для автосохранения."""
         file_name = Validation.validate_string(file_name, "file_name")
+        with self._lock:
+            file_name = str(Path(file_name).absolute())
+            self._write_snapshot(file_name, self._collections)
+            self._file_name = file_name
+            self._is_loaded = True
+
+    def _write_snapshot(
+        self, file_name: str, collections: dict[str, dict[str, AbstractModel]]
+    ) -> None:
+        """Записывает полный снимок во временный файл и атомарно заменяет целевой."""
         factory = SerializeFactory()
-        data = {
-            field: factory.convert(self.get_entities(field))
-            for field in self.get_entity_types()
+        data: dict[str, object] = {
+            field: factory.convert(list(models.values()))
+            for field, models in collections.items()
         }
+        if self._organization_id is not None:
+            data["organization_id"] = self._organization_id
+        target = Path(file_name)
         try:
-            with open(file_name, "w", encoding="utf-8") as file:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=target.parent,
+                prefix=f".{target.name}.",
+                delete_on_close=False,
+            ) as file:
                 json.dump(data, file, ensure_ascii=False, indent=2)
-        except OSError as ex:
-            raise ApplicationException(
+                file.flush()
+                os.fsync(file.fileno())
+                file.close()
+                os.replace(file.name, target)
+        except (OSError, ValueError, TypeError) as ex:
+            raise PersistenceException(
                 f"Не удалось записать файл '{file_name}'"
             ) from ex
 

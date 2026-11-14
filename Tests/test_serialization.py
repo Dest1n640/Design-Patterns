@@ -8,8 +8,29 @@ from Src.Core.exception import ValidationException
 from Src.Core.position_type import PositionType
 from Src.Logics.deserialize_factory import DeserializeFactory
 from Src.Logics.serialize_factory import SerializeFactory
+from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.settings_model import SettingsModel
+
+
+def test_serialization__settings_json__all_fields_restored():
+    """Общая фабрика восстанавливает свойства настроек, организацию и перечисление."""
+    # Подготовка
+    manager = SettingsManager()
+    manager.read()
+    original = manager.settings
+    serializer = SerializeFactory()
+    data = json.loads(json.dumps(serializer.convert(original)))
+
+    # Действия
+    restored = DeserializeFactory().convert(data)
+
+    # Проверки
+    assert type(restored) is SettingsModel
+    assert restored is not original
+    assert restored.organization is not original.organization
+    assert restored.response_format is original.response_format
+    assert serializer.convert(restored) == data
 
 
 def test_serialization__storage_json__all_model_fields_restored(tmp_path):

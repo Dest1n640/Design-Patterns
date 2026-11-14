@@ -16,6 +16,10 @@ class NotFoundException(ApplicationException):
     """Исключение, сигнализирующее об отсутствии коллекции или сущности."""
 
 
+class PersistenceException(ApplicationException):
+    """Исключение записи данных, при котором операция хранилища отклоняется."""
+
+
 class ValidationException(ApplicationException):
     """Исключение, сигнализирующее о некорректном значении поля или аргумента."""
 

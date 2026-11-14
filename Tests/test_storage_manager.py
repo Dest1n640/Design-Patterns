@@ -326,8 +326,8 @@ def test_storage_manager__start_first_start__is_loaded_and_settings_kept():
     assert manager.settings is settings
 
 
-def test_storage_manager__start_not_first_start__data_not_formed():
-    """При first_start = False данные не формируются и хранилище не загружено."""
+def test_storage_manager__start_not_first_start__empty_storage_initialized():
+    """При first_start=False создаётся сохранённое пустое хранилище."""
     # Подготовка
     manager = StorageManager()
     settings = _build_settings(first_start=False)
@@ -336,7 +336,7 @@ def test_storage_manager__start_not_first_start__data_not_formed():
     manager.start(settings)
 
     # Проверки
-    assert not manager.is_loaded
+    assert manager.is_loaded
     assert all(getattr(manager, name) == [] for name in COLLECTIONS)
 
 

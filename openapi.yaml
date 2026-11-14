@@ -55,6 +55,8 @@ paths:
           $ref: '#/components/responses/EntityConflict'
         '422':
           $ref: '#/components/responses/InvalidEntity'
+        '503':
+          $ref: '#/components/responses/StorageUnavailable'
     get:
       summary: Получить список объектов выбранной коллекции
       description: Возвращает все объекты коллекции, имя которой получено через GET /entities.
@@ -89,7 +91,7 @@ paths:
     patch:
       summary: Частично изменить сущность
       description: >-
-        Передаются изменяемые поля конструктора модели или id.
+        Передаются параметры конструктора, свойства с сеттерами или id.
         Непереданные поля сохраняют текущие значения, списки заменяются целиком.
         После объединения полей проверяется вся модель и её вложенные объекты.
         Существующие связанные объекты изменяются через собственный PATCH.
@@ -117,6 +119,8 @@ paths:
           $ref: '#/components/responses/EntityConflict'
         '422':
           $ref: '#/components/responses/InvalidEntity'
+        '503':
+          $ref: '#/components/responses/StorageUnavailable'
     delete:
       summary: Удалить сущность без входящих ссылок
       description: >-
@@ -135,6 +139,8 @@ paths:
           $ref: '#/components/responses/EntityConflict'
         '422':
           $ref: '#/components/responses/InvalidEntity'
+        '503':
+          $ref: '#/components/responses/StorageUnavailable'
     get:
       summary: Получить объект выбранной коллекции по идентификатору
       description: Возвращает объект выбранной коллекции по значению его поля id.
@@ -343,6 +349,12 @@ components:
       schema:
         type: string
   responses:
+    StorageUnavailable:
+      description: Запись недоступна, изменения отклонены и прежнее состояние сохранено.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EntityError'
     EntityNotFound:
       description: Коллекция или сущность не найдена.
       content:

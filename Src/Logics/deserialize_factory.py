@@ -1,6 +1,5 @@
 import inspect
 from functools import partial
-from typing import get_type_hints
 
 from Src.Core.abstract_convertor import AbstractConvertor
 from Src.Core.abstract_model import AbstractModel
@@ -60,11 +59,11 @@ class DeserializeFactory(AbstractConvertor):
             raise ValidationException("type", "Неизвестный тип модели")
         model_class = self.__model_types[type_name]
         parameters = Common.get_constructor_parameters(model_class)
-        field_types = get_type_hints(model_class.__init__)
+        field_types = Common.get_field_types(model_class)
         model_data = {
             key: value
             for key, value in source.items()
-            if key == "type" or key in parameters
+            if key == "type" or key in field_types
         }
         convertors: list[AbstractConvertor] = [
             BasicDeserialize(),
@@ -76,19 +75,21 @@ class DeserializeFactory(AbstractConvertor):
         fields = {}
         for convertor in convertors:
             fields.update(convertor.convert(model_data))
+        for field in model_data:
+            if field not in fields:
+                raise ValidationException(field, "Ожидаются данные из JSON")
 
         arguments = {}
         for key, item in parameters.items():
             if key in source:
-                if key not in fields:
-                    raise ValidationException(key, "Ожидаются данные из JSON")
                 arguments[key] = fields[key]
             elif item.default is inspect.Parameter.empty:
                 raise ValidationException(key, "Отсутствует обязательный параметр")
 
         model = model_class(**arguments)
-        if "id" in source:
-            model.id = source["id"]
+        for field in field_types:
+            if field in source and field not in parameters:
+                setattr(model, field, fields[field])
         existing = models.get(model.id)
         if existing is not None:
             serializer = SerializeFactory()

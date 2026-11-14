@@ -2,14 +2,18 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
-from Src.Core.exception import ConflictException, NotFoundException, ValidationException
+from Src.Core.exception import (
+    ConflictException,
+    NotFoundException,
+    PersistenceException,
+    ValidationException,
+)
 from Src.Core.report_type import ReportType
 from Src.Logics.report_factory import ReportFactory
 from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 
-# Запуск: читает settings.json и формирует данные хранилища.
 settings_manager = SettingsManager()
 settings_manager.read()
 storage_manager = StorageManager()
@@ -22,17 +26,22 @@ WRITE_RESPONSES = {
     404: {"description": "Коллекция или сущность не найдена."},
     409: {"description": "Конфликт идентификатора, вложенных данных или связей."},
     422: {"description": "Некорректное тело запроса или поля модели."},
+    503: {"description": "Не удалось сохранить изменения в хранилище."},
 }
 
 
 @app.exception_handler(NotFoundException)
+@app.exception_handler(PersistenceException)
 @app.exception_handler(ValidationException)
 def handle_domain_exception(
-    request: Request, exception: NotFoundException | ValidationException
+    request: Request,
+    exception: NotFoundException | ValidationException | PersistenceException,
 ) -> JSONResponse:
     """Преобразует ошибки доменной логики в ответы HTTP с описанием причины."""
     if isinstance(exception, NotFoundException):
         status_code = 404
+    elif isinstance(exception, PersistenceException):
+        status_code = 503
     elif isinstance(exception, ConflictException):
         status_code = 409
     else:
@@ -62,8 +71,9 @@ def get_entity_types() -> list[str]:
 )
 def get_entities(entity_type: str) -> list[dict]:
     """Возвращает все объекты коллекции, имя которой получено через GET /entities."""
-    entities = storage_manager.get_entities(entity_type)
-    return SerializeFactory().convert(entities)
+    with storage_manager:
+        entities = storage_manager.get_entities(entity_type)
+        return SerializeFactory().convert(entities)
 
 
 @app.get(
@@ -73,8 +83,9 @@ def get_entities(entity_type: str) -> list[dict]:
 )
 def get_entity(entity_type: str, entity_id: str) -> dict:
     """Возвращает объект выбранной коллекции по значению его поля id."""
-    entity = storage_manager.get_entity(entity_type, entity_id)
-    return SerializeFactory().convert(entity)
+    with storage_manager:
+        entity = storage_manager.get_entity(entity_type, entity_id)
+        return SerializeFactory().convert(entity)
 
 
 @app.post(
@@ -85,8 +96,9 @@ def get_entity(entity_type: str, entity_id: str) -> dict:
 )
 def create_entity(entity_type: str, data: dict) -> dict:
     """Создаёт сущность выбранной коллекции и возвращает её полное описание."""
-    entity = storage_manager.create_entity(entity_type, data)
-    return SerializeFactory().convert(entity)
+    with storage_manager:
+        entity = storage_manager.create_entity(entity_type, data)
+        return SerializeFactory().convert(entity)
 
 
 @app.patch(
@@ -96,8 +108,9 @@ def create_entity(entity_type: str, data: dict) -> dict:
 )
 def update_entity(entity_type: str, entity_id: str, data: dict) -> dict:
     """Изменяет переданные поля, заменяя списки целиком и проверяя всю модель."""
-    entity = storage_manager.update_entity(entity_type, entity_id, data)
-    return SerializeFactory().convert(entity)
+    with storage_manager:
+        entity = storage_manager.update_entity(entity_type, entity_id, data)
+        return SerializeFactory().convert(entity)
 
 
 @app.delete(
@@ -128,37 +141,35 @@ def get_default_report(entity_type: str, code: str) -> Response:
 def build_response(
     report_type: ReportType | None, entity_type: str, code: str
 ) -> Response:
-    """Ищет сущность (nomenclature, measurement_unit, recipe) и отдаёт отчёт по ней.
-
-    Без report_type формат берётся из настроек через create_default.
-    """
-    entities = {
-        "nomenclature": storage_manager.nomenclature,
-        "measurement_unit": storage_manager.measurement_units,
-        "recipe": storage_manager.technological_maps,
-    }.get(entity_type, [])
-    entity = next((e for e in entities if e.id == code), None)
-    if entity is None:
-        raise HTTPException(
-            404, f"Сущность '{entity_type}' с кодом '{code}' не найдена"
-        )
-    if report_type is None:
-        report_type = settings_manager.settings.response_format
-        builder = report_factory.create_default()
-    else:
-        builder = report_factory.create(report_type)
-    try:
-        report = builder.build(entity)
-    except ValidationException as ex:
-        raise HTTPException(400, ex.message) from ex
-    if report.binary:
-        file_name = f"{entity_type}_{code}.{report_type.value}"
-        return Response(
-            report.binary,
-            media_type="application/octet-stream",
-            headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
-        )
-    return PlainTextResponse(report.text)
+    """Строит отчёт по коду сущности в запрошенном формате или формате из настроек."""
+    with storage_manager:
+        entities = {
+            "nomenclature": storage_manager.nomenclature,
+            "measurement_unit": storage_manager.measurement_units,
+            "recipe": storage_manager.technological_maps,
+        }.get(entity_type, [])
+        entity = next((e for e in entities if e.id == code), None)
+        if entity is None:
+            raise HTTPException(
+                404, f"Сущность '{entity_type}' с кодом '{code}' не найдена"
+            )
+        if report_type is None:
+            report_type = settings_manager.settings.response_format
+            builder = report_factory.create_default()
+        else:
+            builder = report_factory.create(report_type)
+        try:
+            report = builder.build(entity)
+        except ValidationException as ex:
+            raise HTTPException(400, ex.message) from ex
+        if report.binary:
+            file_name = f"{entity_type}_{code}.{report_type.value}"
+            return Response(
+                report.binary,
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+            )
+        return PlainTextResponse(report.text)
 
 
 if __name__ == "__main__":

@@ -14,10 +14,11 @@ SETTINGS_FILE = Path(__file__).resolve().parents[1] / "settings.json"
 
 
 @pytest.fixture(autouse=True)
-def reset_singletons() -> None:
-    """Сбрасывает экземпляры менеджеров, чтобы тесты не зависели друг от друга."""
+def reset_singletons(tmp_path, monkeypatch) -> None:
+    """Изолирует экземпляры менеджеров и файлы хранилища для каждого теста."""
     SettingsManager._instance = None
     StorageManager._instance = None
+    monkeypatch.setattr(StorageManager, "_PROJECT_ROOT", tmp_path)
 
 
 @pytest.fixture

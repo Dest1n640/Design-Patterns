@@ -4,14 +4,18 @@ import asyncio
 import json
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from threading import Event
 
 import pytest
 
-import main
 from Src.Core.named_model import NamedModel
+from Src.Core.validation import Validation
+from Src.Logics.Convertors.basic_serialize import BasicSerialize
+from Src.Logics.deserialize_factory import DeserializeFactory
 from Src.Logics.model_registry import ENTITY_TYPES
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
+from Src.Models.settings_model import SettingsModel
 
 
 def _request(app, method: str, path: str, data: object = None) -> tuple[int, object]:
@@ -56,6 +60,9 @@ def _request(app, method: str, path: str, data: object = None) -> tuple[int, obj
 @pytest.fixture
 def api(monkeypatch):
     """Подключает пустое хранилище и возвращает функцию запросов к приложению."""
+    import main
+
+    StorageManager._instance = None
     monkeypatch.setattr(main, "storage_manager", StorageManager())
     return partial(_request, main.app)
 
@@ -462,28 +469,53 @@ def test_entity_api__concurrent_same_id__one_creation_succeeds(api):
     assert len(StorageManager().nomenclature_groups) == 1
 
 
-def test_entity_api__new_registered_model__crud_supported(monkeypatch):
+def test_entity_api__new_registered_model__crud_supported(api, monkeypatch):
     """Одна регистрация новой модели подключает существующие HTTP-методы CRUD."""
 
     # Подготовка
+    import main
+
     class TagModel(NamedModel):
         """Дополнительная модель для проверки расширяемости CRUD."""
 
+        def __init__(self, name: str) -> None:
+            """Создаёт метку с выключенным признаком активности."""
+            super().__init__(name)
+            self.__enabled = False
+
+        @property
+        def enabled(self) -> bool:
+            """Возвращает признак активности метки."""
+            return self.__enabled
+
+        @enabled.setter
+        def enabled(self, new_enabled: bool) -> None:
+            """Проверяет и устанавливает признак активности метки."""
+            self.__enabled = Validation.validate_instance(
+                new_enabled, bool, "enabled", "Ожидается логическое значение"
+            )
+
     monkeypatch.setitem(ENTITY_TYPES, "tags", TagModel)
+    StorageManager._instance = None
     monkeypatch.setattr(main, "storage_manager", StorageManager())
-    api = partial(_request, main.app)
 
     # Действия
-    created_status, created = api("POST", "/entities/tags", {"name": "Метка"})
+    created_status, created = api(
+        "POST", "/entities/tags", {"name": "Метка", "enabled": True}
+    )
     path = f"/entities/tags/{created['id']}"
-    updated_status, updated = api("PATCH", path, {"name": "Новая метка"})
+    updated_status, updated = api(
+        "PATCH", path, {"name": "Новая метка", "enabled": False}
+    )
     deleted_status, _ = api("DELETE", path)
 
     # Проверки
     assert created_status == 201
     assert created["type"] == "TagModel"
+    assert created["enabled"] is True
     assert updated_status == 200
     assert updated["name"] == "Новая метка"
+    assert updated["enabled"] is False
     assert deleted_status == 204
 
 
@@ -507,3 +539,140 @@ def test_entity_api__active_organization__settings_reference_preserved(api):
     assert organization.name == "Новое название"
     assert deleted_status == 409
     assert storage.get_entity("organizations", organization.id) is organization
+
+
+@pytest.mark.parametrize("collection_response", [False, True])
+def test_entity_api__concurrent_get_and_patch__consistent_response(
+    api, monkeypatch, collection_response
+):
+    """GET формирует целостный снимок до применения параллельного PATCH."""
+    # Подготовка
+    _, gram = api(
+        "POST", "/entities/measurement_units", {"name": "грамм", "coefficient": 1}
+    )
+    _, unit = api(
+        "POST",
+        "/entities/measurement_units",
+        {
+            "name": "единица",
+            "coefficient": 1000,
+            "base_unit": gram,
+        },
+    )
+    storage = StorageManager()
+    original = storage.get_entity("measurement_units", unit["id"])
+    captured = Event()
+    resume = Event()
+    writer_started = Event()
+    writer_finished = Event()
+    original_convert = BasicSerialize.convert
+    path = "/entities/measurement_units"
+    if not collection_response:
+        path += f"/{unit['id']}"
+
+    def paused_convert(self, source):
+        """Останавливает сериализацию между чтением простых полей и ссылок."""
+        result = original_convert(self, source)
+        if source is original and not captured.is_set():
+            captured.set()
+            if not resume.wait(5):
+                raise RuntimeError("Сериализация не получила сигнал продолжения")
+        return result
+
+    def update_unit():
+        """Изменяет единицу измерения из параллельного потока."""
+        writer_started.set()
+        storage.update_entity(
+            "measurement_units", unit["id"], {"coefficient": 1, "base_unit": None}
+        )
+        writer_finished.set()
+
+    monkeypatch.setattr(BasicSerialize, "convert", paused_convert)
+
+    # Действия
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        reader = executor.submit(api, "GET", path)
+        try:
+            assert captured.wait(5)
+            writer = executor.submit(update_unit)
+            assert writer_started.wait(5)
+            finished_during_read = writer_finished.wait(0.1)
+        finally:
+            resume.set()
+        status, response = reader.result(timeout=5)
+        writer.result(timeout=5)
+    restored = DeserializeFactory().convert(response)
+
+    # Проверки
+    assert status == 200
+    assert not finished_during_read
+    if collection_response:
+        assert response == [gram, unit]
+        assert restored[1].coefficient == 1000
+    else:
+        assert response == unit
+        assert restored.coefficient == 1000
+    assert original.coefficient == 1
+    assert original.base_unit is None
+
+
+def test_entity_api__autosave_restart__created_entity_available(
+    api, tmp_path, monkeypatch
+):
+    """Созданная через HTTP сущность доступна после восстановления приложения."""
+    # Подготовка
+    import main
+
+    file_name = tmp_path / "storage.json"
+    StorageManager().start(SettingsModel(), str(file_name))
+
+    # Действия
+    created_status, created = api(
+        "POST", "/entities/nomenclature_groups", {"name": "Сохранённая"}
+    )
+    StorageManager._instance = None
+    restored = StorageManager()
+    settings = SettingsModel()
+    settings.first_start = True
+    restored.start(settings, str(file_name))
+    monkeypatch.setattr(main, "storage_manager", restored)
+    read_status, loaded = api("GET", f"/entities/nomenclature_groups/{created['id']}")
+
+    # Проверки
+    assert created_status == 201
+    assert read_status == 200
+    assert loaded == created
+
+
+def test_entity_api__save_failure__service_error_and_retry(api, tmp_path, monkeypatch):
+    """Ошибка сохранения возвращает HTTP 503, после восстановления запись доступна."""
+    # Подготовка
+    file_name = tmp_path / "storage.json"
+    storage = StorageManager()
+    storage.start(SettingsModel(), str(file_name))
+    original_file = file_name.read_bytes()
+
+    def fail_replace(source, target) -> None:
+        """Имитирует отказ атомарной замены файла хранилища."""
+        raise OSError("Запись недоступна")
+
+    # Действия
+    with monkeypatch.context() as patch:
+        patch.setattr("Src.Logics.storage_manager.os.replace", fail_replace)
+        failed_status, error = api(
+            "POST", "/entities/nomenclature_groups", {"name": "Ошибка"}
+        )
+        failed_file = file_name.read_bytes()
+        failed_models = storage.nomenclature_groups
+    retry_status, created = api(
+        "POST", "/entities/nomenclature_groups", {"name": "Сохранённая"}
+    )
+    saved = json.loads(file_name.read_text(encoding="utf-8"))
+
+    # Проверки
+    assert failed_status == 503
+    assert "detail" in error
+    assert failed_file == original_file
+    assert failed_models == []
+    assert retry_status == 201
+    assert saved["nomenclature_groups"] == [created]

@@ -1,5 +1,6 @@
 import inspect  # интроспекция
 from collections.abc import Mapping
+from typing import get_type_hints
 
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.exception import ValidationException
@@ -34,3 +35,18 @@ class Common:
             )
         signature = inspect.signature(source)
         return signature.parameters
+
+    @staticmethod
+    def get_field_types(source: type[AbstractModel]) -> dict[str, object]:
+        """Возвращает типы параметров конструктора и свойств с сеттерами."""
+        parameters = Common.get_constructor_parameters(source)
+        hints = get_type_hints(source.__init__)
+        field_types = {name: hints.get(name, object) for name in parameters}
+        for name, attribute in inspect.getmembers(source):
+            if not isinstance(attribute, property) or attribute.fset is None:
+                continue
+            setter_hints = get_type_hints(attribute.fset)
+            setter_hints.pop("self", None)
+            setter_hints.pop("return", None)
+            field_types[name] = next(iter(setter_hints.values()), object)
+        return field_types
