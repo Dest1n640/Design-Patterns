@@ -1,8 +1,8 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import PlainTextResponse, Response
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
-from Src.Core.exception import NotFoundException, ValidationException
+from Src.Core.exception import ConflictException, NotFoundException, ValidationException
 from Src.Core.report_type import ReportType
 from Src.Logics.report_factory import ReportFactory
 from Src.Logics.serialize_factory import SerializeFactory
@@ -17,6 +17,30 @@ storage_manager.start(settings_manager.settings)
 report_factory = ReportFactory(settings_manager.settings)
 
 app = FastAPI()
+
+WRITE_RESPONSES = {
+    404: {"description": "Коллекция или сущность не найдена."},
+    409: {"description": "Конфликт идентификатора, вложенных данных или связей."},
+    422: {"description": "Некорректное тело запроса или поля модели."},
+}
+
+
+@app.exception_handler(NotFoundException)
+@app.exception_handler(ValidationException)
+def handle_domain_exception(
+    request: Request, exception: NotFoundException | ValidationException
+) -> JSONResponse:
+    """Преобразует ошибки доменной логики в ответы HTTP с описанием причины."""
+    if isinstance(exception, NotFoundException):
+        status_code = 404
+    elif isinstance(exception, ConflictException):
+        status_code = 409
+    else:
+        status_code = 422
+    content = {"detail": exception.message}
+    if isinstance(exception, ValidationException):
+        content["field"] = exception.field
+    return JSONResponse(status_code=status_code, content=content)
 
 
 @app.get("/report-formats", summary="Получить список форматов отчётов")
@@ -38,25 +62,55 @@ def get_entity_types() -> list[str]:
 )
 def get_entities(entity_type: str) -> list[dict]:
     """Возвращает все объекты коллекции, имя которой получено через GET /entities."""
-    try:
-        entities = storage_manager.get_entities(entity_type)
-    except NotFoundException as ex:
-        raise HTTPException(404, ex.message) from ex
+    entities = storage_manager.get_entities(entity_type)
     return SerializeFactory().convert(entities)
 
 
 @app.get(
-    "/entities/{entity_type}/{entity_id}",
+    "/entities/{entity_type}/{entity_id:path}",
     summary="Получить объект выбранной коллекции по идентификатору",
     responses={404: {"description": "Коллекция или сущность не найдена."}},
 )
 def get_entity(entity_type: str, entity_id: str) -> dict:
     """Возвращает объект выбранной коллекции по значению его поля id."""
-    try:
-        entity = storage_manager.get_entity(entity_type, entity_id)
-    except NotFoundException as ex:
-        raise HTTPException(404, ex.message) from ex
+    entity = storage_manager.get_entity(entity_type, entity_id)
     return SerializeFactory().convert(entity)
+
+
+@app.post(
+    "/entities/{entity_type}",
+    status_code=201,
+    summary="Создать сущность вместе с новыми вложенными объектами",
+    responses=WRITE_RESPONSES,
+)
+def create_entity(entity_type: str, data: dict) -> dict:
+    """Создаёт сущность выбранной коллекции и возвращает её полное описание."""
+    entity = storage_manager.create_entity(entity_type, data)
+    return SerializeFactory().convert(entity)
+
+
+@app.patch(
+    "/entities/{entity_type}/{entity_id:path}",
+    summary="Частично изменить сущность",
+    responses=WRITE_RESPONSES,
+)
+def update_entity(entity_type: str, entity_id: str, data: dict) -> dict:
+    """Изменяет переданные поля, заменяя списки целиком и проверяя всю модель."""
+    entity = storage_manager.update_entity(entity_type, entity_id, data)
+    return SerializeFactory().convert(entity)
+
+
+@app.delete(
+    "/entities/{entity_type}/{entity_id:path}",
+    status_code=204,
+    response_class=Response,
+    summary="Удалить сущность без входящих ссылок",
+    responses=WRITE_RESPONSES,
+)
+def delete_entity(entity_type: str, entity_id: str) -> Response:
+    """Удаляет сущность, сохраняя связанные с ней вложенные объекты в коллекциях."""
+    storage_manager.delete_entity(entity_type, entity_id)
+    return Response(status_code=204)
 
 
 @app.get("/reports/{report_type}/{entity_type}/{code}")

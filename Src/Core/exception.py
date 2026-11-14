@@ -32,3 +32,7 @@ class ValidationException(ApplicationException):
     def __str__(self) -> str:
         """Строковое представление для логов и вывода в консоль."""
         return f"Ошибка валидации поля '{self.__field}': {self.message}"
+
+
+class ConflictException(ValidationException):
+    """Исключение конфликта запроса с существующими данными или связями."""

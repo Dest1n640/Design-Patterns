@@ -1,10 +1,13 @@
 import json
+from threading import RLock
 from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
 from Src.Core.abstract_model import AbstractModel
+from Src.Core.common import Common
 from Src.Core.exception import (
     ApplicationException,
+    ConflictException,
     NotFoundException,
     ValidationException,
 )
@@ -40,6 +43,7 @@ class StorageManager(AbstractManager):
         if hasattr(self, "_settings"):
             return
         super().__init__()
+        self._lock = RLock()
         self._settings: SettingsModel | None = None
         self._collections: dict[str, dict[str, AbstractModel]] = {
             name: {} for name in ENTITY_TYPES
@@ -91,17 +95,133 @@ class StorageManager(AbstractManager):
 
     def get_entities(self, entity_type: str) -> list[AbstractModel]:
         """Возвращает объекты указанной коллекции доменных сущностей."""
-        return list(self._get_collection(entity_type).values())
+        with self._lock:
+            return list(self._get_collection(entity_type).values())
 
     def get_entity(self, entity_type: str, entity_id: str) -> AbstractModel:
         """Возвращает сущность из указанной коллекции по идентификатору."""
-        collection = self._get_collection(entity_type)
-        try:
-            return collection[entity_id]
-        except KeyError as ex:
-            raise NotFoundException(
-                f"Сущность '{entity_type}' с кодом '{entity_id}' не найдена"
-            ) from ex
+        with self._lock:
+            collection = self._get_collection(entity_type)
+            try:
+                return collection[entity_id]
+            except KeyError as ex:
+                raise NotFoundException(
+                    f"Сущность '{entity_type}' с кодом '{entity_id}' не найдена"
+                ) from ex
+
+    def create_entity(self, entity_type: str, data: dict) -> AbstractModel:
+        """Создаёт сущность и новые вложенные объекты после проверки всего запроса."""
+        with self._lock:
+            source = self._entity_source(entity_type, data)
+            existing = self._all_models()
+            factory = DeserializeFactory()
+            model = factory.convert(source, existing)
+            if any(entity.id == model.id for entity in existing):
+                raise ConflictException("id", "Сущность с таким кодом уже существует")
+            self._collections = self._merge_models(factory.models)
+            return model
+
+    def update_entity(
+        self, entity_type: str, entity_id: str, data: dict
+    ) -> AbstractModel:
+        """Проверяет частичное изменение и применяет его с сохранением общих ссылок."""
+        with self._lock:
+            original = self.get_entity(entity_type, entity_id)
+            changes = self._entity_source(entity_type, data)
+            parameters = Common.get_constructor_parameters(type(original))
+            for field in changes:
+                if field not in parameters and field not in {"id", "type"}:
+                    raise ValidationException(field, "Поле недоступно для изменения")
+            serialized = SerializeFactory().convert(original)
+            source = {
+                field: value
+                for field, value in serialized.items()
+                if field in parameters or field == "id"
+            } | changes
+            existing = [model for model in self._all_models() if model is not original]
+            factory = DeserializeFactory()
+            updated = factory.convert(source, existing)
+            id_changed = updated.id != original.id
+            if id_changed:
+                if any(model.id == updated.id for model in existing):
+                    raise ConflictException("id", "Код уже занят другой сущностью")
+                self._ensure_unreferenced(original)
+            collections = self._merge_models(factory.models)
+            if id_changed:
+                del collections[entity_type][original.id]
+            collections[entity_type][updated.id] = original
+            original.replace_state(updated)
+            self._collections = collections
+            return original
+
+    def delete_entity(self, entity_type: str, entity_id: str) -> None:
+        """Удаляет сущность без входящих ссылок, сохраняя вложенные модели."""
+        with self._lock:
+            model = self.get_entity(entity_type, entity_id)
+            self._ensure_unreferenced(model)
+            del self._collections[entity_type][entity_id]
+
+    def _entity_source(self, entity_type: str, data: dict) -> dict:
+        """Проверяет коллекцию и тип входных данных, дополняя их меткой модели."""
+        self._get_collection(entity_type)
+        data = Validation.validate_instance(
+            data, dict, "entity", "Сущность должна быть JSON-объектом"
+        )
+        type_name = ENTITY_TYPES[entity_type].__name__
+        if data.get("type", type_name) != type_name:
+            raise ValidationException("type", "Тип модели не соответствует коллекции")
+        return data | {"type": type_name}
+
+    def _all_models(self) -> list[AbstractModel]:
+        """Возвращает объекты всех коллекций для проверки кодов и общих ссылок."""
+        return [
+            model
+            for collection in self._collections.values()
+            for model in collection.values()
+        ]
+
+    def _merge_models(
+        self, models: list[AbstractModel]
+    ) -> dict[str, dict[str, AbstractModel]]:
+        """Собирает новые коллекции без изменения текущего состояния хранилища."""
+        collections = {
+            name: values.copy() for name, values in self._collections.items()
+        }
+        collection_names = {
+            model_type: name for name, model_type in ENTITY_TYPES.items()
+        }
+        for model in models:
+            if type(model) not in collection_names:
+                raise ValidationException("type", "Ожидается доменная модель")
+            collections[collection_names[type(model)]][model.id] = model
+        return collections
+
+    def _ensure_unreferenced(self, model: AbstractModel) -> None:
+        """Запрещает удаление и смену кода при входящих ссылках на сущность."""
+        owners = self._all_models()
+        if self._settings is not None:
+            owners.append(self._settings)
+        for owner in owners:
+            if owner is model:
+                continue
+            if any(
+                self._references(getattr(owner, field), model.id)
+                for field in Common.get_fields(owner)
+            ):
+                raise ConflictException(
+                    "id", f"Сущность используется моделью '{type(owner).__name__}'"
+                )
+
+    @staticmethod
+    def _references(value: object, entity_id: str) -> bool:
+        """Проверяет наличие ссылки на код в свойстве или вложенной коллекции."""
+        if isinstance(value, AbstractModel):
+            return value.id == entity_id
+        if isinstance(value, dict):
+            value = list(value.values())
+        if isinstance(value, list):
+            return any(StorageManager._references(item, entity_id) for item in value)
+        return False
 
     def _get_collection(self, entity_type: str) -> dict[str, AbstractModel]:
         """Возвращает коллекцию или сообщает об отсутствии её регистрации."""
@@ -130,23 +250,35 @@ class StorageManager(AbstractManager):
         if not any(field in data for field in ENTITY_TYPES):
             raise ValidationException("storage", "Отсутствуют коллекции хранилища")
         factory = DeserializeFactory()
+        sources = {
+            field: Validation.validate_instance(
+                data.get(field, []), list, field, "Коллекция должна быть списком"
+            )
+            for field in ENTITY_TYPES
+        }
+        restored = factory.convert(sources)
         collections = {}
         entity_ids = set()
         for field, model_type in ENTITY_TYPES.items():
-            source = Validation.validate_instance(
-                data.get(field, []), list, field, "Коллекция должна быть списком"
-            )
-            models = factory.convert(source)
+            models = restored[field]
             for model in models:
-                Validation.validate_instance(
-                    model, model_type, field, "Некорректный тип модели в коллекции"
-                )
+                if type(model) is not model_type:
+                    raise ValidationException(
+                        field, "Некорректный тип модели в коллекции"
+                    )
                 if model.id in entity_ids:
                     raise ValidationException(
                         "id", "Коды моделей не должны повторяться"
                     )
                 entity_ids.add(model.id)
             collections[field] = {model.id: model for model in models}
+
+        collection_names = {
+            model_type: field for field, model_type in ENTITY_TYPES.items()
+        }
+        for model in factory.models:
+            field = collection_names[type(model)]
+            collections[field].setdefault(model.id, model)
 
         self._collections = collections
         return True

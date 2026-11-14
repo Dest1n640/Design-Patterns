@@ -6,9 +6,11 @@ import pytest
 
 from Src.Core.exception import NotFoundException, ValidationException
 from Src.Logics.model_registry import ENTITY_TYPES
+from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.ingredient_model import IngredientModel
+from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 from Src.Models.settings_model import SettingsModel
 
@@ -88,11 +90,27 @@ def test_storage_manager__registered_model__read_and_save_supported(
     class ExtraGroupModel(NomenclatureGroupModel):
         """Дополнительная доменная модель для проверки расширения реестра."""
 
+        def __init__(self, name: str, unit: MeasurementUnitModel) -> None:
+            """Создаёт группу со вложенной единицей измерения."""
+            super().__init__(name)
+            self.__unit = unit
+
+        @property
+        def unit(self) -> MeasurementUnitModel:
+            """Возвращает единицу измерения группы."""
+            return self.__unit
+
     monkeypatch.setitem(ENTITY_TYPES, "extra_groups", ExtraGroupModel)
     manager = StorageManager()
+    unit = MeasurementUnitModel.create_gram()
     data = {
         "extra_groups": [
-            {"type": "ExtraGroupModel", "id": "extra-group", "name": "Группа"}
+            {
+                "type": "ExtraGroupModel",
+                "id": "extra-group",
+                "name": "Группа",
+                "unit": SerializeFactory().convert(unit),
+            }
         ]
     }
     file_name = tmp_path / "storage.json"
@@ -109,6 +127,7 @@ def test_storage_manager__registered_model__read_and_save_supported(
     assert "extra_groups" in manager.get_entity_types()
     assert type(entity) is ExtraGroupModel
     assert entity is entities[0]
+    assert entity.unit is manager.get_entity("measurement_units", unit.id)
     assert saved["extra_groups"] == data["extra_groups"]
 
 

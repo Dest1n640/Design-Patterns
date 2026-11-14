@@ -122,3 +122,134 @@ def test_deserialize_factory__non_json_object__raises():
 
     # Проверки
     assert exc_info.value.field == "source"
+
+
+@pytest.mark.parametrize("order", [("грамм", "килограмм"), ("килограмм", "грамм")])
+def test_deserialize_factory__repeated_id__shared_instance_restored(units, order):
+    """Вложенная и самостоятельная модели с одним id становятся одним объектом."""
+    # Подготовка
+    source = SerializeFactory().convert([units[name] for name in order])
+
+    # Действия
+    restored = DeserializeFactory().convert(source)
+    by_name = {model.name: model for model in restored}
+
+    # Проверки
+    assert by_name["килограмм"].base_unit is by_name["грамм"]
+
+
+def test_deserialize_factory__equivalent_fields__shared_instance_restored():
+    """Очистка строк и значения по умолчанию учитываются при сравнении моделей."""
+    # Подготовка
+    source = [
+        {
+            "type": "MeasurementUnitModel",
+            "id": " unit ",
+            "name": " грамм ",
+            "coefficient": 1,
+        },
+        {
+            "type": "MeasurementUnitModel",
+            "id": "unit",
+            "name": "грамм",
+            "coefficient": 1.0,
+            "base_unit": None,
+        },
+    ]
+
+    # Действия
+    restored = DeserializeFactory().convert(source)
+
+    # Проверки
+    assert restored[0] is restored[1]
+
+
+@pytest.mark.parametrize(
+    "changes", [{"name": "Другое название"}, {"type": "NomenclatureGroupModel"}]
+)
+def test_deserialize_factory__conflicting_id__raises(changes):
+    """Различия данных или типов при одинаковом id вызывают ошибку валидации."""
+    # Подготовка
+    source = {
+        "type": "MeasurementUnitModel",
+        "id": "unit",
+        "name": "грамм",
+        "coefficient": 1,
+    }
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        DeserializeFactory().convert([source, source | changes])
+
+    # Проверки
+    assert exc_info.value.field == "id"
+
+
+def test_deserialize_factory__nested_ancestor_id__raises():
+    """Повтор кода предка во вложенной модели отклоняется как противоречие."""
+    # Подготовка
+    unit = {
+        "type": "MeasurementUnitModel",
+        "id": "unit",
+        "name": "грамм",
+        "coefficient": 1,
+    }
+    source = unit | {"base_unit": unit}
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        DeserializeFactory().convert(source)
+
+    # Проверки
+    assert exc_info.value.field == "id"
+
+
+def test_deserialize_factory__separate_calls__independent_graphs_restored():
+    """Повторное использование фабрики создаёт независимый граф моделей."""
+    # Подготовка
+    factory = DeserializeFactory()
+    source = {"type": "NomenclatureGroupModel", "id": "group", "name": "Группа"}
+    first = factory.convert(source)
+
+    # Действия
+    second = factory.convert(source | {"name": "Новое название"})
+
+    # Проверки
+    assert first is not second
+    assert first.name == "Группа"
+    assert second.name == "Новое название"
+    assert factory.models[0] is second
+
+
+def test_deserialize_factory__failed_conversion__previous_models_kept():
+    """Ошибка десериализации сохраняет результат предыдущего успешного вызова."""
+    # Подготовка
+    factory = DeserializeFactory()
+    source = {"type": "NomenclatureGroupModel", "id": "group", "name": "Группа"}
+    original = factory.convert(source)
+
+    # Действия
+    with pytest.raises(ValidationException):
+        factory.convert([source, source | {"name": "Конфликт"}])
+
+    # Проверки
+    assert len(factory.models) == 1
+    assert factory.models[0] is original
+
+
+def test_deserialize_factory__unused_nested_field__extra_model_ignored():
+    """Неиспользуемое поле входных данных не добавляет сущность в граф модели."""
+    # Подготовка
+    factory = DeserializeFactory()
+    source = {
+        "type": "NomenclatureGroupModel",
+        "name": "Группа",
+        "extra": {"type": "RestaurantModel", "name": "Ресторан"},
+    }
+
+    # Действия
+    model = factory.convert(source)
+
+    # Проверки
+    assert len(factory.models) == 1
+    assert factory.models[0] is model
