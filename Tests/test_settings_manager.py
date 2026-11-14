@@ -267,3 +267,36 @@ def test_settings_manager__read_from_other_directory__reads_default_file(
 
     # Проверки
     assert manager.is_loaded
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "value"),
+    [
+        ("company", "boss_name", None),
+        ("company", "accountant_name", " "),
+        (None, "first_start", "true"),
+        (None, "first_start", None),
+        (None, "response_format", None),
+        (None, "response_format", []),
+        (None, "response_format", {}),
+    ],
+)
+def test_settings_manager__invalid_property__previous_settings_kept(
+    settings_data, tmp_path, section, field, value
+):
+    """Ошибка свойства при общей десериализации сохраняет прежние настройки."""
+    # Подготовка
+    manager = _build_loaded_manager()
+    original = manager.settings
+    target = settings_data[section] if section else settings_data
+    target[field] = value
+    file_name = _write_json(tmp_path, settings_data)
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        manager.read(file_name)
+
+    # Проверки
+    assert exc_info.value.field == field
+    assert manager.settings is original
+    assert manager.is_loaded

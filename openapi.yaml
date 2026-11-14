@@ -1,0 +1,460 @@
+openapi: 3.1.0
+info:
+  title: Main API
+  description: API «ООО Ромашка». Доменные сущности и отчёты.
+  version: '1.0'
+servers:
+- url: http://localhost:8080
+  description: Local development server
+paths:
+  /entities:
+    get:
+      summary: Получить список коллекций доменных сущностей
+      description: Возвращает имена доступных коллекций доменных сущностей.
+      operationId: get_entity_types_entities_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+                title: Response Get Entity Types Entities Get
+  /entities/{entity_type}:
+    post:
+      summary: Создать сущность вместе с новыми вложенными объектами
+      description: >-
+        Тип корневой модели определяется коллекцией из GET /entities.
+        Вложенные модели передаются целиком с меткой type.
+        Новые объекты без id получают идентификаторы и добавляются в свои коллекции.
+        Существующие объекты связываются по id при совпадающих данных.
+        Код создаваемого корневого объекта должен быть свободен.
+        Дополнительные поля, включая вычисляемые, игнорируются при создании.
+        Ошибка любого вложенного объекта отклоняет весь запрос.
+      operationId: create_entity_entities__entity_type__post
+      parameters:
+      - $ref: '#/components/parameters/EntityType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntityInput'
+      responses:
+        '201':
+          description: Сущность и её новые вложенные объекты созданы.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entity'
+        '404':
+          $ref: '#/components/responses/EntityNotFound'
+        '409':
+          $ref: '#/components/responses/EntityConflict'
+        '422':
+          $ref: '#/components/responses/InvalidEntity'
+        '503':
+          $ref: '#/components/responses/StorageUnavailable'
+    get:
+      summary: Получить список объектов выбранной коллекции
+      description: Возвращает все объекты коллекции, имя которой получено через GET /entities.
+      operationId: get_entities_entities__entity_type__get
+      parameters:
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Entity Type
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response Get Entities Entities  Entity Type  Get
+        '404':
+          description: Коллекция не найдена.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /entities/{entity_type}/{entity_id}:
+    patch:
+      summary: Частично изменить сущность
+      description: >-
+        Передаются параметры конструктора, свойства с сеттерами или id.
+        Непереданные поля сохраняют текущие значения, списки заменяются целиком.
+        После объединения полей проверяется вся модель и её вложенные объекты.
+        Существующие связанные объекты изменяются через собственный PATCH.
+        Смена id запрещена при входящих ссылках или занятом новом коде.
+      operationId: update_entity_entities__entity_type___entity_id__patch
+      parameters:
+      - $ref: '#/components/parameters/EntityType'
+      - $ref: '#/components/parameters/EntityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntityInput'
+      responses:
+        '200':
+          description: Изменённая сущность с полным описанием вложенных объектов.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entity'
+        '404':
+          $ref: '#/components/responses/EntityNotFound'
+        '409':
+          $ref: '#/components/responses/EntityConflict'
+        '422':
+          $ref: '#/components/responses/InvalidEntity'
+        '503':
+          $ref: '#/components/responses/StorageUnavailable'
+    delete:
+      summary: Удалить сущность без входящих ссылок
+      description: >-
+        Удаление запрещено, если на сущность ссылается другой объект
+        или настройки приложения. Вложенные объекты сохраняются в своих коллекциях.
+      operationId: delete_entity_entities__entity_type___entity_id__delete
+      parameters:
+      - $ref: '#/components/parameters/EntityType'
+      - $ref: '#/components/parameters/EntityId'
+      responses:
+        '204':
+          description: Сущность удалена, тело ответа отсутствует.
+        '404':
+          $ref: '#/components/responses/EntityNotFound'
+        '409':
+          $ref: '#/components/responses/EntityConflict'
+        '422':
+          $ref: '#/components/responses/InvalidEntity'
+        '503':
+          $ref: '#/components/responses/StorageUnavailable'
+    get:
+      summary: Получить объект выбранной коллекции по идентификатору
+      description: Возвращает объект выбранной коллекции по значению его поля id.
+      operationId: get_entity_entities__entity_type___entity_id__get
+      parameters:
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Entity Type
+      - name: entity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Entity Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Entity Entities  Entity Type   Entity Id  Get
+        '404':
+          description: Коллекция или сущность не найдена.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /report-formats:
+    get:
+      summary: Получить список форматов отчётов
+      description: Возвращает список всех поддерживаемых форматов отчётов.
+      operationId: get_report_formats_report_formats_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+                title: Response Get Report Formats Report Formats Get
+  /reports/{report_type}/{entity_type}/{code}:
+    get:
+      summary: Получить отчёт в указанном формате
+      description: Генерирует отчёт по типу сущности и её уникальному коду. CSV и Markdown
+        возвращаются файлами, остальные форматы — текстом.
+      operationId: get_report
+      parameters:
+      - name: report_type
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ReportType'
+          description: Формат отчёта.
+        description: Формат отчёта.
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+          title: Entity Type
+        description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Уникальный код сущности (значение её поля id).
+          title: Code
+        description: Уникальный код сущности (значение её поля id).
+      responses:
+        '200':
+          description: Текстовый отчёт или файл CSV/Markdown для скачивания.
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Имя файла для скачивания (для CSV и Markdown).
+              schema:
+                type: string
+        '400':
+          description: Ошибка валидации при построении отчёта.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '404':
+          description: Неизвестный тип сущности или сущность с таким кодом не найдена.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /reports/{entity_type}/{code}:
+    get:
+      summary: Получить отчёт в формате из настроек
+      description: Генерирует отчёт по типу сущности и её уникальному коду. Формат берётся
+        из response_format в настройках. CSV и Markdown возвращаются файлами, остальные форматы
+        — текстом.
+      operationId: get_default_report
+      parameters:
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+          title: Entity Type
+        description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Уникальный код сущности (значение её поля id).
+          title: Code
+        description: Уникальный код сущности (значение её поля id).
+      responses:
+        '200':
+          description: Текстовый отчёт или файл CSV/Markdown для скачивания.
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Имя файла для скачивания (для CSV и Markdown).
+              schema:
+                type: string
+        '400':
+          description: Ошибка валидации при построении отчёта.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '404':
+          description: Неизвестный тип сущности или сущность с таким кодом не найдена.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  parameters:
+    EntityType:
+      name: entity_type
+      in: path
+      required: true
+      description: Имя коллекции из GET /entities.
+      schema:
+        type: string
+    EntityId:
+      name: entity_id
+      in: path
+      required: true
+      description: Идентификатор сущности в выбранной коллекции.
+      schema:
+        type: string
+  responses:
+    StorageUnavailable:
+      description: Запись недоступна, изменения отклонены и прежнее состояние сохранено.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EntityError'
+    EntityNotFound:
+      description: Коллекция или сущность не найдена.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EntityError'
+    EntityConflict:
+      description: Конфликт идентификатора, вложенных данных или входящих ссылок.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EntityError'
+    InvalidEntity:
+      description: Некорректное тело запроса, поля или состояние модели.
+      content:
+        application/json:
+          schema:
+            anyOf:
+            - $ref: '#/components/schemas/EntityError'
+            - $ref: '#/components/schemas/HTTPValidationError'
+  schemas:
+    Entity:
+      type: object
+      required:
+      - id
+      - type
+      properties:
+        id:
+          type: string
+          minLength: 1
+        type:
+          type: string
+      additionalProperties: true
+      description: Поля модели и полные рекурсивные описания связанных объектов.
+    EntityInput:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        type:
+          type: string
+      additionalProperties: true
+      description: >-
+        Поля выбранной модели. При создании обязательны параметры её конструктора.
+        Для PATCH передаются изменяемые поля. Метка type корня необязательна
+        и должна соответствовать коллекции. Вложенные модели содержат метку type.
+        При создании дополнительные поля игнорируются.
+        Вычисляемые поля формируются моделью, их изменение через PATCH запрещено.
+    EntityError:
+      type: object
+      required:
+      - detail
+      properties:
+        detail:
+          type: string
+        field:
+          type: string
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ReportType:
+      type: string
+      enum:
+      - txt
+      - csv
+      - markdown
+      - xml
+      - html
+      title: ReportType
+      description: Тип отчёта; значение используется в адресе API.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

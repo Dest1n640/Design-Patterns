@@ -12,6 +12,14 @@ class ApplicationException(Exception):
         return self.__message
 
 
+class NotFoundException(ApplicationException):
+    """Исключение, сигнализирующее об отсутствии коллекции или сущности."""
+
+
+class PersistenceException(ApplicationException):
+    """Исключение записи данных, при котором операция хранилища отклоняется."""
+
+
 class ValidationException(ApplicationException):
     """Исключение, сигнализирующее о некорректном значении поля или аргумента."""
 
@@ -28,3 +36,7 @@ class ValidationException(ApplicationException):
     def __str__(self) -> str:
         """Строковое представление для логов и вывода в консоль."""
         return f"Ошибка валидации поля '{self.__field}': {self.message}"
+
+
+class ConflictException(ValidationException):
+    """Исключение конфликта запроса с существующими данными или связями."""

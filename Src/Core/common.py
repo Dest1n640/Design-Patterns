@@ -1,6 +1,6 @@
 import inspect  # интроспекция
 from collections.abc import Mapping
-from typing import get_args, get_origin, get_type_hints
+from typing import get_type_hints
 
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.exception import ValidationException
@@ -25,21 +25,6 @@ class Common:
         return fields
 
     @staticmethod
-    def get_collection_types(source: object) -> dict[str, type[AbstractModel]]:
-        """Возвращает классы моделей коллекций по аннотациям публичных свойств."""
-        result = {}
-        for field in Common.get_fields(source):
-            getter = getattr(type(source), field).fget
-            field_type = get_type_hints(getter).get("return")
-            item_types = get_args(field_type)
-            if get_origin(field_type) is not list or not item_types:
-                continue
-            model_type = item_types[0]
-            if inspect.isclass(model_type) and issubclass(model_type, AbstractModel):
-                result[field] = model_type
-        return result
-
-    @staticmethod
     def get_constructor_parameters(
         source: type[AbstractModel],
     ) -> Mapping[str, inspect.Parameter]:
@@ -50,3 +35,18 @@ class Common:
             )
         signature = inspect.signature(source)
         return signature.parameters
+
+    @staticmethod
+    def get_field_types(source: type[AbstractModel]) -> dict[str, object]:
+        """Возвращает типы параметров конструктора и свойств с сеттерами."""
+        parameters = Common.get_constructor_parameters(source)
+        hints = get_type_hints(source.__init__)
+        field_types = {name: hints.get(name, object) for name in parameters}
+        for name, attribute in inspect.getmembers(source):
+            if not isinstance(attribute, property) or attribute.fset is None:
+                continue
+            setter_hints = get_type_hints(attribute.fset)
+            setter_hints.pop("self", None)
+            setter_hints.pop("return", None)
+            field_types[name] = next(iter(setter_hints.values()), object)
+        return field_types
