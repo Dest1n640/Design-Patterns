@@ -9,37 +9,19 @@ from Src.Logics.Convertors.collection_deserialize import CollectionDeserialize
 from Src.Logics.Convertors.datetime_deserialize import DatetimeDeserialize
 from Src.Logics.Convertors.enum_deserialize import EnumDeserialize
 from Src.Logics.Convertors.reference_deserialize import ReferenceDeserialize
-from Src.Models.dish_model import DishModel
-from Src.Models.ingredient_model import IngredientModel
-from Src.Models.measurement_unit_model import MeasurementUnitModel
-from Src.Models.nomenclature_group_model import NomenclatureGroupModel
-from Src.Models.nomenclature_model import NomenclatureModel
-from Src.Models.organization_model import OrganizationModel
-from Src.Models.premises_model import PremisesModel
-from Src.Models.production_shop_model import ProductionShopModel
-from Src.Models.restaurant_model import RestaurantModel
+from Src.Logics.model_registry import ENTITY_TYPES
 from Src.Models.settings_model import SettingsModel
-from Src.Models.technological_map_model import TechnologicalMapModel
-from Src.Models.warehouse_model import WarehouseModel
-
-mapping = {
-    "DishModel": DishModel,
-    "IngredientModel": IngredientModel,
-    "MeasurementUnitModel": MeasurementUnitModel,
-    "NomenclatureGroupModel": NomenclatureGroupModel,
-    "NomenclatureModel": NomenclatureModel,
-    "OrganizationModel": OrganizationModel,
-    "PremisesModel": PremisesModel,
-    "ProductionShopModel": ProductionShopModel,
-    "RestaurantModel": RestaurantModel,
-    "SettingsModel": SettingsModel,
-    "TechnologicalMapModel": TechnologicalMapModel,
-    "WarehouseModel": WarehouseModel,
-}
 
 
 class DeserializeFactory(AbstractConvertor):
     """Фабрика восстановления моделей из словарей и списков JSON."""
+
+    def __init__(self) -> None:
+        """Получает доменные типы из реестра и добавляет модель настроек."""
+        self.__model_types = {
+            model_type.__name__: model_type for model_type in ENTITY_TYPES.values()
+        }
+        self.__model_types[SettingsModel.__name__] = SettingsModel
 
     def convert(self, source: object) -> object:
         """Рекурсивно восстанавливает модели и сохраняет их идентификаторы."""
@@ -53,9 +35,9 @@ class DeserializeFactory(AbstractConvertor):
             return CollectionDeserialize(self.convert).convert(source)
 
         type_name = source.get("type")
-        if not isinstance(type_name, str) or type_name not in mapping:
+        if not isinstance(type_name, str) or type_name not in self.__model_types:
             raise ValidationException("type", "Неизвестный тип модели")
-        model_class = mapping[type_name]
+        model_class = self.__model_types[type_name]
         parameters = Common.get_constructor_parameters(model_class)
         field_types = get_type_hints(model_class.__init__)
         convertors: list[AbstractConvertor] = [

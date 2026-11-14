@@ -2,9 +2,10 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse, Response
 
-from Src.Core.exception import ValidationException
+from Src.Core.exception import NotFoundException, ValidationException
 from Src.Core.report_type import ReportType
 from Src.Logics.report_factory import ReportFactory
+from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 
@@ -16,6 +17,46 @@ storage_manager.start(settings_manager.settings)
 report_factory = ReportFactory(settings_manager.settings)
 
 app = FastAPI()
+
+
+@app.get("/report-formats", summary="Получить список форматов отчётов")
+def get_report_formats() -> list[str]:
+    """Возвращает список всех поддерживаемых форматов отчётов."""
+    return [report_type.value for report_type in ReportType]
+
+
+@app.get("/entities", summary="Получить список коллекций доменных сущностей")
+def get_entity_types() -> list[str]:
+    """Возвращает имена доступных коллекций доменных сущностей."""
+    return storage_manager.get_entity_types()
+
+
+@app.get(
+    "/entities/{entity_type}",
+    summary="Получить список объектов выбранной коллекции",
+    responses={404: {"description": "Коллекция не найдена."}},
+)
+def get_entities(entity_type: str) -> list[dict]:
+    """Возвращает все объекты коллекции, имя которой получено через GET /entities."""
+    try:
+        entities = storage_manager.get_entities(entity_type)
+    except NotFoundException as ex:
+        raise HTTPException(404, ex.message) from ex
+    return SerializeFactory().convert(entities)
+
+
+@app.get(
+    "/entities/{entity_type}/{entity_id}",
+    summary="Получить объект выбранной коллекции по идентификатору",
+    responses={404: {"description": "Коллекция или сущность не найдена."}},
+)
+def get_entity(entity_type: str, entity_id: str) -> dict:
+    """Возвращает объект выбранной коллекции по значению его поля id."""
+    try:
+        entity = storage_manager.get_entity(entity_type, entity_id)
+    except NotFoundException as ex:
+        raise HTTPException(404, ex.message) from ex
+    return SerializeFactory().convert(entity)
 
 
 @app.get("/reports/{report_type}/{entity_type}/{code}")

@@ -26,7 +26,7 @@ def test_serialization__storage_json__all_model_fields_restored(tmp_path):
     # Проверки
     serializer = SerializeFactory()
     for collection, models in restored.items():
-        originals = getattr(manager, collection)
+        originals = manager.get_entities(collection)
         assert len(models) == len(originals)
         for original, loaded in zip(originals, models, strict=True):
             assert type(loaded) is type(original)
@@ -59,8 +59,8 @@ def test_serialization__manager_read__saved_models_restored(tmp_path):
     assert restored.is_loaded
     serializer = SerializeFactory()
     for collection, expected in data.items():
-        originals = getattr(manager, collection)
-        loaded = getattr(restored, collection)
+        originals = manager.get_entities(collection)
+        loaded = restored.get_entities(collection)
         assert serializer.convert(loaded) == expected
         assert len(loaded) == len(originals)
         for original, model in zip(originals, loaded, strict=True):

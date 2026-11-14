@@ -4,9 +4,12 @@ import json
 
 import pytest
 
-from Src.Core.exception import ValidationException
+from Src.Core.exception import NotFoundException, ValidationException
+from Src.Logics.model_registry import ENTITY_TYPES
+from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.ingredient_model import IngredientModel
+from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 from Src.Models.settings_model import SettingsModel
 
 COLLECTIONS = [
@@ -17,6 +20,13 @@ COLLECTIONS = [
     "production_shops",
     "warehouses",
     "technological_maps",
+]
+ALL_COLLECTIONS = [
+    *COLLECTIONS,
+    "organizations",
+    "premises",
+    "dishes",
+    "ingredients",
 ]
 
 
@@ -55,6 +65,194 @@ def _same_objects(left: list, right: list) -> bool:
     return len(left) == len(right) and all(
         a is b for a, b in zip(left, right, strict=True)
     )
+
+
+def test_storage_manager__get_entity_types_empty_storage__all_collections():
+    """Имена коллекций доступны даже в пустом хранилище."""
+    # Подготовка
+    manager = StorageManager()
+
+    # Действия
+    entity_types = manager.get_entity_types()
+
+    # Проверки
+    assert set(entity_types) == set(ALL_COLLECTIONS)
+
+
+def test_storage_manager__registered_model__read_and_save_supported(
+    monkeypatch, tmp_path
+):
+    """Одна регистрация подключает новую модель к чтению, поиску и сохранению."""
+
+    # Подготовка
+    class ExtraGroupModel(NomenclatureGroupModel):
+        """Дополнительная доменная модель для проверки расширения реестра."""
+
+    monkeypatch.setitem(ENTITY_TYPES, "extra_groups", ExtraGroupModel)
+    manager = StorageManager()
+    data = {
+        "extra_groups": [
+            {"type": "ExtraGroupModel", "id": "extra-group", "name": "Группа"}
+        ]
+    }
+    file_name = tmp_path / "storage.json"
+    file_name.write_text(json.dumps(data), encoding="utf-8")
+
+    # Действия
+    manager.read(str(file_name))
+    entities = manager.get_entities("extra_groups")
+    entity = manager.get_entity("extra_groups", "extra-group")
+    manager.save(str(file_name))
+    saved = json.loads(file_name.read_text(encoding="utf-8"))
+
+    # Проверки
+    assert "extra_groups" in manager.get_entity_types()
+    assert type(entity) is ExtraGroupModel
+    assert entity is entities[0]
+    assert saved["extra_groups"] == data["extra_groups"]
+
+
+@pytest.mark.parametrize("collection", COLLECTIONS)
+def test_storage_manager__get_entities__stored_objects_returned(collection):
+    """Общий метод возвращает объекты любой коллекции хранилища."""
+    # Подготовка
+    manager = _build_started_manager()
+    expected = getattr(manager, collection)
+
+    # Действия
+    entities = manager.get_entities(collection)
+
+    # Проверки
+    assert _same_objects(entities, expected)
+
+
+@pytest.mark.parametrize("collection", ["missing", "settings", "_data", "save"])
+def test_storage_manager__get_entities_invalid_collection__raises(collection):
+    """Неизвестные имена, настройки, закрытые поля и методы недоступны."""
+    # Подготовка
+    manager = _build_started_manager()
+
+    # Действия
+    with pytest.raises(NotFoundException) as exc_info:
+        manager.get_entities(collection)
+
+    # Проверки
+    assert collection in exc_info.value.message
+
+
+@pytest.mark.parametrize("collection", COLLECTIONS)
+def test_storage_manager__get_entity_existing_id__stored_object_returned(collection):
+    """Поиск по идентификатору возвращает исходный объект любой коллекции."""
+    # Подготовка
+    manager = _build_started_manager()
+    expected = getattr(manager, collection)[0]
+
+    # Действия
+    entity = manager.get_entity(collection, expected.id)
+
+    # Проверки
+    assert entity is expected
+
+
+def test_storage_manager__get_entity_missing_id__raises():
+    """Поиск отсутствующего идентификатора завершается ошибкой отсутствия сущности."""
+    # Подготовка
+    manager = _build_started_manager()
+
+    # Действия
+    with pytest.raises(NotFoundException) as exc_info:
+        manager.get_entity("nomenclature_groups", "missing")
+
+    # Проверки
+    assert "missing" in exc_info.value.message
+
+
+def test_storage_manager__renamed_entity__lookup_uses_id():
+    """Изменение названия не влияет на поиск объекта по идентификатору."""
+    # Подготовка
+    manager = _build_started_manager()
+    original = manager.nomenclature_groups[0]
+    entity_id = original.id
+
+    # Действия
+    original.name = "Новое название"
+    entity = manager.get_entity("nomenclature_groups", entity_id)
+
+    # Проверки
+    assert entity is original
+    assert entity.name == "Новое название"
+
+
+def test_storage_manager__duplicate_names__distinct_ids_preserved(tmp_path):
+    """Объекты с одинаковыми названиями сохраняются и находятся по разным id."""
+    # Подготовка
+    manager = StorageManager()
+    data = {
+        "nomenclature_groups": [
+            {"type": "NomenclatureGroupModel", "id": "first", "name": "Группа"},
+            {"type": "NomenclatureGroupModel", "id": "second", "name": "Группа"},
+        ]
+    }
+    file_name = tmp_path / "storage.json"
+    file_name.write_text(json.dumps(data), encoding="utf-8")
+
+    # Действия
+    manager.read(str(file_name))
+    first = manager.get_entity("nomenclature_groups", "first")
+    second = manager.get_entity("nomenclature_groups", "second")
+    manager.save(str(file_name))
+    saved = json.loads(file_name.read_text(encoding="utf-8"))
+
+    # Проверки
+    assert first is not second
+    assert first.name == second.name == "Группа"
+    assert saved["nomenclature_groups"] == data["nomenclature_groups"]
+
+
+def test_storage_manager__duplicate_id_across_collections__state_kept(tmp_path):
+    """Одинаковые коды в разных коллекциях отклоняются до замены данных."""
+    # Подготовка
+    manager = _build_started_manager()
+    original = manager.nomenclature_groups[0]
+    data = {
+        "nomenclature_groups": [
+            {"type": "NomenclatureGroupModel", "id": "same", "name": "Группа"}
+        ],
+        "restaurants": [{"type": "RestaurantModel", "id": "same", "name": "Ресторан"}],
+    }
+    file_name = tmp_path / "storage.json"
+    file_name.write_text(json.dumps(data), encoding="utf-8")
+
+    # Действия
+    with pytest.raises(ValidationException) as exc_info:
+        manager.read(str(file_name))
+
+    # Проверки
+    assert exc_info.value.field == "id"
+    assert manager.get_entity("nomenclature_groups", original.id) is original
+
+
+def test_storage_manager__first_start__nested_models_have_collections():
+    """Организация и вложенные модели доступны через общие методы хранилища."""
+    # Подготовка
+    settings_manager = SettingsManager()
+    settings_manager.read()
+    manager = StorageManager()
+
+    # Действия
+    manager.start(settings_manager.settings)
+    sources = {
+        "organizations": [settings_manager.settings.organization],
+        "premises": [warehouse.premises for warehouse in manager.warehouses],
+        "dishes": [dish for tmap in manager.technological_maps for dish in tmap.dishes],
+        "ingredients": _ingredients(manager),
+    }
+
+    # Проверки
+    for collection, expected in sources.items():
+        assert _same_objects(manager.get_entities(collection), expected)
+        for entity in expected:
+            assert manager.get_entity(collection, entity.id) is entity
 
 
 def test_storage_manager__two_instances__same_object():
@@ -312,7 +510,7 @@ def test_storage_manager__save__all_collections_in_json(tmp_path):
     data = json.loads(file_name.read_text(encoding="utf-8"))
 
     # Проверки
-    assert set(data) == set(COLLECTIONS)
+    assert set(data) == set(ALL_COLLECTIONS)
     units = {unit["name"]: unit for unit in data["measurement_units"]}
     assert units["килограмм"]["base_unit"] == units["грамм"]
 
@@ -331,7 +529,7 @@ def test_storage_manager__read_empty_collections__loaded_and_empty(tmp_path):
     # Проверки
     assert manager.is_loaded
     assert manager.settings is settings
-    assert all(getattr(manager, field) == [] for field in COLLECTIONS)
+    assert all(manager.get_entities(field) == [] for field in ALL_COLLECTIONS)
 
 
 @pytest.mark.parametrize("data", [None, [], {}])
@@ -359,7 +557,7 @@ def test_storage_manager__read_invalid_root__state_kept(tmp_path, data):
         None,
         {},
         [{"type": "MeasurementUnitModel", "name": "грамм", "coefficient": 1}],
-        [{"type": "TechnologicalMapModel", "name": "Карта"}] * 2,
+        [{"type": "TechnologicalMapModel", "name": "Карта", "id": "same-id"}] * 2,
         [{"type": "UnknownModel"}],
     ],
 )

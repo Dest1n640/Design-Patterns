@@ -12,6 +12,10 @@ class ApplicationException(Exception):
         return self.__message
 
 
+class NotFoundException(ApplicationException):
+    """Исключение, сигнализирующее об отсутствии коллекции или сущности."""
+
+
 class ValidationException(ApplicationException):
     """Исключение, сигнализирующее о некорректном значении поля или аргумента."""
 

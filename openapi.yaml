@@ -1,0 +1,294 @@
+openapi: 3.1.0
+info:
+  title: Main API
+  description: API «ООО Ромашка». Отчёты по доменным сущностям.
+  version: '1.0'
+servers:
+- url: http://localhost:8080
+  description: Local development server
+paths:
+  /entities:
+    get:
+      summary: Получить список коллекций доменных сущностей
+      description: Возвращает имена доступных коллекций доменных сущностей.
+      operationId: get_entity_types_entities_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+                title: Response Get Entity Types Entities Get
+  /entities/{entity_type}:
+    get:
+      summary: Получить список объектов выбранной коллекции
+      description: Возвращает все объекты коллекции, имя которой получено через GET /entities.
+      operationId: get_entities_entities__entity_type__get
+      parameters:
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Entity Type
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response Get Entities Entities  Entity Type  Get
+        '404':
+          description: Коллекция не найдена.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /entities/{entity_type}/{entity_id}:
+    get:
+      summary: Получить объект выбранной коллекции по идентификатору
+      description: Возвращает объект выбранной коллекции по значению его поля id.
+      operationId: get_entity_entities__entity_type___entity_id__get
+      parameters:
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Entity Type
+      - name: entity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Entity Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Entity Entities  Entity Type   Entity Id  Get
+        '404':
+          description: Коллекция или сущность не найдена.
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /report-formats:
+    get:
+      summary: Получить список форматов отчётов
+      description: Возвращает список всех поддерживаемых форматов отчётов.
+      operationId: get_report_formats_report_formats_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+                title: Response Get Report Formats Report Formats Get
+  /reports/{report_type}/{entity_type}/{code}:
+    get:
+      summary: Получить отчёт в указанном формате
+      description: Генерирует отчёт по типу сущности и её уникальному коду. CSV и Markdown
+        возвращаются файлами, остальные форматы — текстом.
+      operationId: get_report
+      parameters:
+      - name: report_type
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ReportType'
+          description: Формат отчёта.
+        description: Формат отчёта.
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+          title: Entity Type
+        description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Уникальный код сущности (значение её поля id).
+          title: Code
+        description: Уникальный код сущности (значение её поля id).
+      responses:
+        '200':
+          description: Текстовый отчёт или файл CSV/Markdown для скачивания.
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Имя файла для скачивания (для CSV и Markdown).
+              schema:
+                type: string
+        '400':
+          description: Ошибка валидации при построении отчёта.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '404':
+          description: Неизвестный тип сущности или сущность с таким кодом не найдена.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /reports/{entity_type}/{code}:
+    get:
+      summary: Получить отчёт в формате из настроек
+      description: Генерирует отчёт по типу сущности и её уникальному коду. Формат берётся
+        из response_format в настройках. CSV и Markdown возвращаются файлами, остальные форматы
+        — текстом.
+      operationId: get_default_report
+      parameters:
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+          title: Entity Type
+        description: 'Тип сущности: nomenclature, measurement_unit или recipe.'
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Уникальный код сущности (значение её поля id).
+          title: Code
+        description: Уникальный код сущности (значение её поля id).
+      responses:
+        '200':
+          description: Текстовый отчёт или файл CSV/Markdown для скачивания.
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Имя файла для скачивания (для CSV и Markdown).
+              schema:
+                type: string
+        '400':
+          description: Ошибка валидации при построении отчёта.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '404':
+          description: Неизвестный тип сущности или сущность с таким кодом не найдена.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ReportType:
+      type: string
+      enum:
+      - txt
+      - csv
+      - markdown
+      - xml
+      - html
+      title: ReportType
+      description: Тип отчёта; значение используется в адресе API.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
