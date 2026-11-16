@@ -16,7 +16,7 @@ from Src.Core.exception import (
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 from Src.Logics.deserialize_factory import DeserializeFactory
-from Src.Logics.model_registry import ENTITY_TYPES
+from Src.Logics.entity_type import EntityType
 from Src.Logics.serialize_factory import SerializeFactory
 from Src.Models.ingredient_model import IngredientModel
 from Src.Models.measurement_unit_model import MeasurementUnitModel
@@ -50,7 +50,7 @@ class StorageManager(AbstractManager):
         self._settings: SettingsModel | None = None
         self._organization_id: str | None = None
         self._collections: dict[str, dict[str, AbstractModel]] = {
-            name: {} for name in ENTITY_TYPES
+            entity_type.name.lower(): {} for entity_type in EntityType
         }
 
     def __enter__(self) -> Self:
@@ -139,9 +139,10 @@ class StorageManager(AbstractManager):
     def commit(self, models: list[AbstractModel]) -> None:
         """Атомарно сохраняет набор моделей перед заменой индексов хранилища."""
         with self._lock:
-            collections = {name: {} for name in ENTITY_TYPES}
+            collections = {entity_type.name.lower(): {} for entity_type in EntityType}
             collection_names = {
-                model_type: name for name, model_type in ENTITY_TYPES.items()
+                entity_type.value: entity_type.name.lower()
+                for entity_type in EntityType
             }
             entity_ids = set()
             for model in models:
@@ -194,7 +195,9 @@ class StorageManager(AbstractManager):
                     self._collections = (
                         self._create_default_data()
                         if settings.first_start
-                        else {name: {} for name in ENTITY_TYPES}
+                        else {
+                            entity_type.name.lower(): {} for entity_type in EntityType
+                        }
                     )
                     self._organization_id = None
                     self._sync_organization()
@@ -221,22 +224,26 @@ class StorageManager(AbstractManager):
         data = Validation.validate_instance(
             self._data, dict, "storage", "Хранилище должно быть JSON-объектом"
         )
-        if not any(field in data for field in ENTITY_TYPES):
+        if not any(entity_type.name.lower() in data for entity_type in EntityType):
             raise ValidationException("storage", "Отсутствуют коллекции хранилища")
         factory = DeserializeFactory()
         sources = {
-            field: Validation.validate_instance(
-                data.get(field, []), list, field, "Коллекция должна быть списком"
+            entity_type.name.lower(): Validation.validate_instance(
+                data.get(entity_type.name.lower(), []),
+                list,
+                entity_type.name.lower(),
+                "Коллекция должна быть списком",
             )
-            for field in ENTITY_TYPES
+            for entity_type in EntityType
         }
         restored = factory.convert(sources)
         collections = {}
         entity_ids = set()
-        for field, model_type in ENTITY_TYPES.items():
+        for entity_type in EntityType:
+            field = entity_type.name.lower()
             models = restored[field]
             for model in models:
-                if type(model) is not model_type:
+                if type(model) is not entity_type.value:
                     raise ValidationException(
                         field, "Некорректный тип модели в коллекции"
                     )
@@ -248,7 +255,7 @@ class StorageManager(AbstractManager):
             collections[field] = {model.id: model for model in models}
 
         collection_names = {
-            model_type: field for field, model_type in ENTITY_TYPES.items()
+            entity_type.value: entity_type.name.lower() for entity_type in EntityType
         }
         for model in factory.models:
             field = collection_names[type(model)]
@@ -318,7 +325,7 @@ class StorageManager(AbstractManager):
                 if isinstance(ingredient, IngredientModel)
             ],
         }
-        collections = {name: {} for name in ENTITY_TYPES}
+        collections = {entity_type.name.lower(): {} for entity_type in EntityType}
         for field, models in defaults.items():
             collections[field] = {model.id: model for model in models}
         return collections

@@ -1,10 +1,12 @@
 """Общие фикстуры тестов."""
 
 import json
+from enum import Enum
 from pathlib import Path
 
 import pytest
 
+from Src.Core.abstract_model import AbstractModel
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.measurement_unit_model import MeasurementUnitModel
@@ -19,6 +21,34 @@ def reset_singletons(tmp_path, monkeypatch) -> None:
     SettingsManager._instance = None
     StorageManager._instance = None
     monkeypatch.setattr(StorageManager, "_PROJECT_ROOT", tmp_path)
+
+
+@pytest.fixture
+def register_entity_type(monkeypatch):
+    """Подключает тестовую модель одной записью в расширенном перечислении."""
+    from Src.Logics import (
+        deserialize_factory,
+        entity_request_adapter,
+        entity_service,
+        entity_type,
+        storage_manager,
+    )
+
+    def register(collection_name: str, model_type: type[AbstractModel]) -> None:
+        """Добавляет модель в перечисление всех потребителей на время теста."""
+        members = {item.name: item.value for item in entity_type.EntityType}
+        members[collection_name.upper()] = model_type
+        extended = Enum("EntityType", members)
+        for module in (
+            entity_type,
+            deserialize_factory,
+            entity_request_adapter,
+            entity_service,
+            storage_manager,
+        ):
+            monkeypatch.setattr(module, "EntityType", extended)
+
+    return register
 
 
 @pytest.fixture

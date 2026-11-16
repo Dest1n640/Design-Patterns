@@ -1,6 +1,5 @@
-"""Единый реестр коллекций доменных моделей приложения."""
+from enum import Enum, unique
 
-from Src.Core.abstract_model import AbstractModel
 from Src.Models.dish_model import DishModel
 from Src.Models.ingredient_model import IngredientModel
 from Src.Models.measurement_unit_model import MeasurementUnitModel
@@ -13,16 +12,19 @@ from Src.Models.restaurant_model import RestaurantModel
 from Src.Models.technological_map_model import TechnologicalMapModel
 from Src.Models.warehouse_model import WarehouseModel
 
-ENTITY_TYPES: dict[str, type[AbstractModel]] = {
-    "measurement_units": MeasurementUnitModel,
-    "nomenclature_groups": NomenclatureGroupModel,
-    "nomenclature": NomenclatureModel,
-    "restaurants": RestaurantModel,
-    "production_shops": ProductionShopModel,
-    "warehouses": WarehouseModel,
-    "technological_maps": TechnologicalMapModel,
-    "organizations": OrganizationModel,
-    "premises": PremisesModel,
-    "dishes": DishModel,
-    "ingredients": IngredientModel,
-}
+
+@unique
+class EntityType(Enum):
+    """Доменные модели; имена элементов в нижнем регистре задают ключи коллекций."""
+
+    MEASUREMENT_UNITS = MeasurementUnitModel
+    NOMENCLATURE_GROUPS = NomenclatureGroupModel
+    NOMENCLATURE = NomenclatureModel
+    RESTAURANTS = RestaurantModel
+    PRODUCTION_SHOPS = ProductionShopModel
+    WAREHOUSES = WarehouseModel
+    TECHNOLOGICAL_MAPS = TechnologicalMapModel
+    ORGANIZATIONS = OrganizationModel
+    PREMISES = PremisesModel
+    DISHES = DishModel
+    INGREDIENTS = IngredientModel

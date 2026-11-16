@@ -13,7 +13,7 @@ from Src.Core.validation import Validation
 from Src.Logics.Convertors.basic_serialize import BasicSerialize
 from Src.Logics.deserialize_factory import DeserializeFactory
 from Src.Logics.entity_service import EntityService
-from Src.Logics.model_registry import ENTITY_TYPES
+from Src.Logics.entity_type import EntityType
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.measurement_unit_model import MeasurementUnitModel
@@ -119,7 +119,7 @@ def entity_payloads() -> dict[str, dict]:
     }
 
 
-@pytest.mark.parametrize("entity_type", list(ENTITY_TYPES))
+@pytest.mark.parametrize("entity_type", [item.name.lower() for item in EntityType])
 def test_entity_api__all_model_types__crud_lifecycle(api, entity_payloads, entity_type):
     """Каждая зарегистрированная модель поддерживает полный цикл CRUD через HTTP."""
     # Подготовка
@@ -471,8 +471,10 @@ def test_entity_api__concurrent_same_id__one_creation_succeeds(api):
     assert len(StorageManager().nomenclature_groups) == 1
 
 
-def test_entity_api__new_registered_model__crud_supported(api, monkeypatch):
-    """Одна регистрация новой модели подключает существующие HTTP-методы CRUD."""
+def test_entity_api__new_enum_member__persistent_crud_supported(
+    api, monkeypatch, register_entity_type, tmp_path
+):
+    """Одна запись перечисления подключает модель к HTTP-методам и сохранению."""
 
     # Подготовка
     import main
@@ -497,9 +499,12 @@ def test_entity_api__new_registered_model__crud_supported(api, monkeypatch):
                 new_enabled, bool, "enabled", "Ожидается логическое значение"
             )
 
-    monkeypatch.setitem(ENTITY_TYPES, "tags", TagModel)
+    register_entity_type("tags", TagModel)
     StorageManager._instance = None
-    monkeypatch.setattr(main, "storage_manager", StorageManager())
+    storage = StorageManager()
+    file_name = tmp_path / "tags.json"
+    storage.start(SettingsModel(), str(file_name))
+    monkeypatch.setattr(main, "storage_manager", storage)
 
     # Действия
     created_status, created = api(
@@ -509,6 +514,11 @@ def test_entity_api__new_registered_model__crud_supported(api, monkeypatch):
     updated_status, updated = api(
         "PATCH", path, {"name": "Новая метка", "enabled": False}
     )
+    StorageManager._instance = None
+    restored = StorageManager()
+    restored.start(SettingsModel(), str(file_name))
+    monkeypatch.setattr(main, "storage_manager", restored)
+    read_status, loaded = api("GET", path)
     deleted_status, _ = api("DELETE", path)
 
     # Проверки
@@ -518,6 +528,8 @@ def test_entity_api__new_registered_model__crud_supported(api, monkeypatch):
     assert updated_status == 200
     assert updated["name"] == "Новая метка"
     assert updated["enabled"] is False
+    assert read_status == 200
+    assert loaded == updated
     assert deleted_status == 204
 
 

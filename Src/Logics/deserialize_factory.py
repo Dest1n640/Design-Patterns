@@ -10,7 +10,7 @@ from Src.Logics.Convertors.collection_deserialize import CollectionDeserialize
 from Src.Logics.Convertors.datetime_deserialize import DatetimeDeserialize
 from Src.Logics.Convertors.enum_deserialize import EnumDeserialize
 from Src.Logics.Convertors.reference_deserialize import ReferenceDeserialize
-from Src.Logics.model_registry import ENTITY_TYPES
+from Src.Logics.entity_type import EntityType
 from Src.Logics.serialize_factory import SerializeFactory
 from Src.Models.settings_model import SettingsModel
 
@@ -19,9 +19,9 @@ class DeserializeFactory(AbstractConvertor):
     """Фабрика восстановления моделей из словарей и списков JSON."""
 
     def __init__(self) -> None:
-        """Получает доменные типы из реестра и добавляет модель настроек."""
+        """Получает доменные типы из перечисления и добавляет модель настроек."""
         self.__model_types = {
-            model_type.__name__: model_type for model_type in ENTITY_TYPES.values()
+            entity_type.value.__name__: entity_type.value for entity_type in EntityType
         }
         self.__model_types[SettingsModel.__name__] = SettingsModel
         self.__models: dict[str, AbstractModel] = {}

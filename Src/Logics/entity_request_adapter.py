@@ -3,7 +3,7 @@ from Src.Core.common import Common
 from Src.Core.exception import NotFoundException, ValidationException
 from Src.Core.validation import Validation
 from Src.Logics.deserialize_factory import DeserializeFactory
-from Src.Logics.model_registry import ENTITY_TYPES
+from Src.Logics.entity_type import EntityType
 from Src.Logics.serialize_factory import SerializeFactory
 
 
@@ -16,7 +16,9 @@ class EntityRequestAdapter:
     ) -> AbstractModel:
         """Восстанавливает модель выбранной коллекции с общими вложенными объектами."""
         try:
-            model_type = ENTITY_TYPES[entity_type]
+            model_type = {item.name.lower(): item.value for item in EntityType}[
+                entity_type
+            ]
         except KeyError as ex:
             raise NotFoundException(f"Коллекция '{entity_type}' не найдена") from ex
         source = EntityRequestAdapter._source(model_type, data)

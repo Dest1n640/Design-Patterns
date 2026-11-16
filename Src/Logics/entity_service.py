@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.common import Common
 from Src.Core.exception import ConflictException, ValidationException
-from Src.Logics.model_registry import ENTITY_TYPES
+from Src.Logics.entity_type import EntityType
 from Src.Logics.storage_manager import StorageManager
 
 
@@ -131,7 +131,7 @@ class EntityService:
     @staticmethod
     def _validate_model(model: AbstractModel) -> None:
         """Проверяет принадлежность объекта к зарегистрированным доменным моделям."""
-        if type(model) not in ENTITY_TYPES.values():
+        if type(model) not in (entity_type.value for entity_type in EntityType):
             raise ValidationException("type", "Ожидается доменная модель")
 
     def _ensure_unreferenced(self, model: AbstractModel) -> None:

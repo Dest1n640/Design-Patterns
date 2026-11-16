@@ -5,7 +5,6 @@ import json
 import pytest
 
 from Src.Core.exception import NotFoundException, ValidationException
-from Src.Logics.model_registry import ENTITY_TYPES
 from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
@@ -105,10 +104,10 @@ def test_storage_manager__invalid_commit__file_and_models_kept(tmp_path, invalid
     assert manager.get_entity("nomenclature_groups", original.id) is original
 
 
-def test_storage_manager__registered_model__read_and_save_supported(
-    monkeypatch, tmp_path
+def test_storage_manager__new_enum_member__read_and_save_supported(
+    register_entity_type, tmp_path
 ):
-    """Одна регистрация подключает новую модель к чтению, поиску и сохранению."""
+    """Одна запись перечисления подключает модель к чтению, поиску и сохранению."""
 
     # Подготовка
     class ExtraGroupModel(NomenclatureGroupModel):
@@ -124,7 +123,7 @@ def test_storage_manager__registered_model__read_and_save_supported(
             """Возвращает единицу измерения группы."""
             return self.__unit
 
-    monkeypatch.setitem(ENTITY_TYPES, "extra_groups", ExtraGroupModel)
+    register_entity_type("extra_groups", ExtraGroupModel)
     manager = StorageManager()
     unit = MeasurementUnitModel.create_gram()
     data = {

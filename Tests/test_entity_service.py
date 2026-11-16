@@ -6,7 +6,6 @@ import pytest
 
 from Src.Core.exception import ConflictException, ValidationException
 from Src.Logics.entity_service import EntityService
-from Src.Logics.model_registry import ENTITY_TYPES
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
@@ -172,7 +171,9 @@ def test_entity_service__cyclic_model__graph_not_saved():
     assert gram.base_unit is gram
 
 
-def test_entity_service__readonly_nested_model__stored_instance_reused(monkeypatch):
+def test_entity_service__readonly_nested_model__stored_instance_reused(
+    register_entity_type,
+):
     """Вложенная модель без сеттера также связывается с общим экземпляром."""
 
     # Подготовка
@@ -189,7 +190,7 @@ def test_entity_service__readonly_nested_model__stored_instance_reused(monkeypat
             """Возвращает единицу измерения группы."""
             return self.__unit
 
-    monkeypatch.setitem(ENTITY_TYPES, "extra_groups", ExtraGroupModel)
+    register_entity_type("extra_groups", ExtraGroupModel)
     storage = StorageManager()
     service = EntityService(storage)
     gram = service.create(MeasurementUnitModel.create_gram())
