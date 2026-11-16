@@ -1,4 +1,3 @@
-import inspect
 from functools import partial
 
 from Src.Core.abstract_convertor import AbstractConvertor
@@ -58,7 +57,6 @@ class DeserializeFactory(AbstractConvertor):
         if not isinstance(type_name, str) or type_name not in self.__model_types:
             raise ValidationException("type", "Неизвестный тип модели")
         model_class = self.__model_types[type_name]
-        parameters = Common.get_constructor_parameters(model_class)
         field_types = Common.get_field_types(model_class)
         model_data = {
             key: value
@@ -79,17 +77,11 @@ class DeserializeFactory(AbstractConvertor):
             if field not in fields:
                 raise ValidationException(field, "Ожидаются данные из JSON")
 
-        arguments = {}
-        for key, item in parameters.items():
-            if key in source:
-                arguments[key] = fields[key]
-            elif item.default is inspect.Parameter.empty:
-                raise ValidationException(key, "Отсутствует обязательный параметр")
-
-        model = model_class(**arguments)
+        model = model_class()
         for field in field_types:
-            if field in source and field not in parameters:
+            if field in source:
                 setattr(model, field, fields[field])
+        model.validate()
         existing = models.get(model.id)
         if existing is not None:
             serializer = SerializeFactory()

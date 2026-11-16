@@ -10,15 +10,23 @@ class MeasurementUnitModel(NamedModel):
 
     _BASE_UNIT_ERROR = "Базовая единица измерения указана некорректно"
 
-    def __init__(
-        self, name: str, coefficient: int | float, base_unit: Self | None = None
-    ):
-        """Конструктор единицы измерения."""
-        super().__init__(name)
-        self.__coefficient = Validation.validate_positive_number(
-            coefficient, "coefficient"
-        )
-        self.__base_unit = self._validate_base_unit(base_unit)
+    def __init__(self) -> None:
+        """Инициализирует единицу измерения без заполненных обязательных полей."""
+        super().__init__()
+        self.__coefficient: int | float | None = None
+        self.__base_unit: Self | None = None
+
+    @classmethod
+    def create(
+        cls, name: str, coefficient: int | float, base_unit: Self | None = None
+    ) -> Self:
+        """Создаёт единицу измерения с проверенными полями и базовой единицей."""
+        model = cls()
+        model.name = name
+        model.base_unit = base_unit
+        model.coefficient = coefficient
+        model.validate()
+        return model
 
     @property
     def coefficient(self):
@@ -33,9 +41,16 @@ class MeasurementUnitModel(NamedModel):
     @coefficient.setter
     def coefficient(self, new_coefficient: int | float):
         """Устанавливает коэффициент пересчёта в базовую единицу измерения."""
-        self.__coefficient = Validation.validate_positive_number(
+        coefficient = Validation.validate_positive_number(
             new_coefficient, "coefficient"
         )
+        if (
+            self.__coefficient is not None
+            and self.__base_unit is None
+            and coefficient != 1
+        ):
+            raise ValidationException("base_unit", self._BASE_UNIT_ERROR)
+        self.__coefficient = coefficient
 
     @base_unit.setter
     def base_unit(self, new_base_unit: Self | None):
@@ -50,9 +65,9 @@ class MeasurementUnitModel(NamedModel):
         return self.coefficient * self.base_unit.base_coefficient
 
     def _validate_base_unit(self, value: Self | None) -> Self | None:
-        """Проверяет базовую единицу: None допустим только при коэффициенте 1."""
+        """Проверяет базовую единицу с учётом заданного коэффициента."""
         if value is None:
-            if self.__coefficient != 1:
+            if self.__coefficient is not None and self.__coefficient != 1:
                 raise ValidationException("base_unit", self._BASE_UNIT_ERROR)
             return None
         return Validation.validate_instance(
@@ -62,27 +77,27 @@ class MeasurementUnitModel(NamedModel):
     @classmethod
     def create_gram(cls) -> Self:
         """Фабричный метод: создаёт грамм."""
-        return cls("грамм", 1)
+        return cls.create("грамм", 1)
 
     @classmethod
     def create_kilogram(cls, gram: Self | None = None) -> Self:
         """Фабричный метод: создаёт килограмм, кратный грамму."""
-        return cls("килограмм", 1000, gram or cls.create_gram())
+        return cls.create("килограмм", 1000, gram or cls.create_gram())
 
     @classmethod
     def create_milliliter(cls) -> Self:
         """Фабричный метод: создаёт миллилитр."""
-        return cls("миллилитр", 1)
+        return cls.create("миллилитр", 1)
 
     @classmethod
     def create_liter(cls, milliliter: Self | None = None) -> Self:
         """Фабричный метод: создаёт литр, кратный миллилитру."""
-        return cls("литр", 1000, milliliter or cls.create_milliliter())
+        return cls.create("литр", 1000, milliliter or cls.create_milliliter())
 
     @classmethod
     def create_piece(cls) -> Self:
         """Фабричный метод: создаёт штуку."""
-        return cls("штука", 1)
+        return cls.create("штука", 1)
 
     @classmethod
     def create_default_units(cls) -> list[Self]:

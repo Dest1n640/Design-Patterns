@@ -40,10 +40,10 @@ def test_storage_persistence__crud_and_restarts__changes_restored(persistent_sto
     manager, file_name = persistent_storage
 
     # Действия
-    created = EntityService(manager).create(NomenclatureGroupModel("Группа"))
+    created = EntityService(manager).create(NomenclatureGroupModel.create("Группа"))
     after_creation = _restart(file_name)
     initial_name = after_creation.get_entity("nomenclature_groups", created.id).name
-    replacement = NomenclatureGroupModel("Новое название")
+    replacement = NomenclatureGroupModel.create("Новое название")
     replacement.id = created.id
     EntityService(after_creation).update("nomenclature_groups", created.id, replacement)
     after_update = _restart(file_name)
@@ -71,12 +71,12 @@ def test_storage_persistence__replace_failure__file_and_graph_kept(
     service = EntityService(manager)
     gram = service.create(MeasurementUnitModel.create_gram())
     kilogram = service.create(MeasurementUnitModel.create_kilogram(gram))
-    group = service.create(NomenclatureGroupModel("Группа"))
+    group = service.create(NomenclatureGroupModel.create("Группа"))
     replacement = copy(gram)
     replacement.name = "Новое имя"
     original_file = file_name.read_bytes()
     operations = {
-        "create": partial(service.create, NomenclatureGroupModel("Новая")),
+        "create": partial(service.create, NomenclatureGroupModel.create("Новая")),
         "update": partial(service.update, "measurement_units", gram.id, replacement),
         "delete": partial(service.delete, "nomenclature_groups", group.id),
     }
@@ -117,7 +117,7 @@ def test_storage_persistence__partial_write_failure__old_file_kept(
 
     # Действия
     with pytest.raises(PersistenceException):
-        EntityService(manager).create(NomenclatureGroupModel("Группа"))
+        EntityService(manager).create(NomenclatureGroupModel.create("Группа"))
 
     # Проверки
     assert file_name.read_bytes() == original_file
@@ -231,7 +231,7 @@ def test_storage_persistence__working_directory_change__same_file_updated(
     monkeypatch.chdir(other_directory)
 
     # Действия
-    created = EntityService(manager).create(NomenclatureGroupModel("Группа"))
+    created = EntityService(manager).create(NomenclatureGroupModel.create("Группа"))
     saved = json.loads((tmp_path / "data/storage.json").read_text(encoding="utf-8"))
 
     # Проверки

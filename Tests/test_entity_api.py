@@ -455,6 +455,35 @@ def test_entity_api__cross_field_patch__whole_model_validated(api):
     assert updated["coefficient"] == updated["base_coefficient"] == 2000
 
 
+@pytest.mark.parametrize(
+    ("entity_type", "field"),
+    [
+        ("measurement_units", "coefficient"),
+        ("nomenclature", "position_type"),
+        ("ingredients", "brutto"),
+        ("dishes", "ingredients"),
+        ("warehouses", "warehouse_owner"),
+        ("premises", "square"),
+        ("organizations", "inn"),
+    ],
+)
+def test_entity_api__required_field_missing__no_models_created(
+    api, entity_payloads, entity_type, field
+):
+    """Создание через сеттеры сохраняет проверки обязательных полей всех моделей."""
+    # Подготовка
+    payload = entity_payloads[entity_type].copy()
+    del payload[field]
+
+    # Действия
+    status, error = api("POST", f"/entities/{entity_type}", payload)
+
+    # Проверки
+    assert status == 422
+    assert error["field"] == field
+    assert StorageManager().get_all_models() == []
+
+
 def test_entity_api__concurrent_same_id__one_creation_succeeds(api):
     """Параллельные запросы не создают две сущности с одинаковым кодом."""
     # Подготовка
@@ -482,9 +511,9 @@ def test_entity_api__new_enum_member__persistent_crud_supported(
     class TagModel(NamedModel):
         """Дополнительная модель для проверки расширяемости CRUD."""
 
-        def __init__(self, name: str) -> None:
-            """Создаёт метку с выключенным признаком активности."""
-            super().__init__(name)
+        def __init__(self) -> None:
+            """Создаёт пустую метку с выключенным признаком активности."""
+            super().__init__()
             self.__enabled = False
 
         @property
@@ -596,7 +625,7 @@ def test_entity_api__concurrent_get_and_patch__consistent_response(
     def update_unit():
         """Изменяет единицу измерения из параллельного потока."""
         writer_started.set()
-        replacement = MeasurementUnitModel("единица", 1)
+        replacement = MeasurementUnitModel.create("единица", 1)
         replacement.id = unit["id"]
         EntityService(storage).update("measurement_units", unit["id"], replacement)
         writer_finished.set()

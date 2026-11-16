@@ -2,6 +2,7 @@ from abc import ABC
 from typing import Self
 from uuid import uuid4
 
+from Src.Core.common import Common
 from Src.Core.exception import ValidationException
 from Src.Core.validation import Validation
 
@@ -33,3 +34,8 @@ class AbstractModel(ABC):  # noqa: B024
         if type(source) is not type(self):
             raise ValidationException("source", "Типы моделей должны совпадать")
         self.__dict__ = source.__dict__.copy()
+
+    def validate(self) -> None:
+        """Проверяет заполненность и значения всех свойств через их сеттеры."""
+        for field in Common.get_field_types(type(self)):
+            setattr(self, field, getattr(self, field))

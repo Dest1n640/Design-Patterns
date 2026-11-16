@@ -5,6 +5,7 @@ import json
 import pytest
 
 from Src.Core.exception import NotFoundException, ValidationException
+from Src.Core.validation import Validation
 from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
@@ -87,7 +88,7 @@ def test_storage_manager__invalid_commit__file_and_models_kept(tmp_path, invalid
     manager = StorageManager()
     file_name = tmp_path / "storage.json"
     manager.start(_build_settings(False), str(file_name))
-    original = NomenclatureGroupModel("Группа")
+    original = NomenclatureGroupModel.create("Группа")
     manager.commit([original])
     duplicate = MeasurementUnitModel.create_gram()
     duplicate.id = original.id
@@ -113,15 +114,22 @@ def test_storage_manager__new_enum_member__read_and_save_supported(
     class ExtraGroupModel(NomenclatureGroupModel):
         """Дополнительная доменная модель для проверки расширения реестра."""
 
-        def __init__(self, name: str, unit: MeasurementUnitModel) -> None:
-            """Создаёт группу со вложенной единицей измерения."""
-            super().__init__(name)
-            self.__unit = unit
+        def __init__(self) -> None:
+            """Создаёт группу без заполненных свойств."""
+            super().__init__()
+            self.__unit = None
 
         @property
         def unit(self) -> MeasurementUnitModel:
             """Возвращает единицу измерения группы."""
             return self.__unit
+
+        @unit.setter
+        def unit(self, value: MeasurementUnitModel) -> None:
+            """Устанавливает единицу измерения группы."""
+            self.__unit = Validation.validate_instance(
+                value, MeasurementUnitModel, "unit", "Ожидается единица измерения"
+            )
 
     register_entity_type("extra_groups", ExtraGroupModel)
     manager = StorageManager()

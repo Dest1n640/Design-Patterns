@@ -32,7 +32,7 @@ class DatedStub:
 @pytest.fixture
 def flour(groups, units) -> NomenclatureModel:
     """Возвращает номенклатуру «Мука» со ссылками на группу и единицу измерения."""
-    return NomenclatureModel(
+    return NomenclatureModel.create(
         "Мука",
         "Мука пшеничная",
         groups["Бакалея"],

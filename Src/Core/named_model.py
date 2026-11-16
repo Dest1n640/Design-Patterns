@@ -1,3 +1,5 @@
+from typing import Self
+
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.validation import Validation
 
@@ -5,10 +7,18 @@ from Src.Core.validation import Validation
 class NamedModel(AbstractModel):
     """Класс для именнованых сущностей."""
 
-    def __init__(self, name: str) -> None:
-        """Конструктор с именем для сущности."""
+    def __init__(self) -> None:
+        """Инициализирует сущность без заполненного имени."""
         super().__init__()
-        self.__name = self._validate_name(name)
+        self.__name = ""
+
+    @classmethod
+    def create(cls, name: str) -> Self:
+        """Создаёт именованную сущность с проверенным именем."""
+        model = cls()
+        model.name = name
+        model.validate()
+        return model
 
     @property
     def name(self) -> str:

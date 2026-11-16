@@ -108,6 +108,7 @@ class EntityService:
             memo[id(value)] = existing
             return existing
         model = deepcopy(value, memo)
+        model.validate()
         models[model.id] = model
         return model
 

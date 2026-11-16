@@ -11,10 +11,10 @@ from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 
 def _build_ingredient(brutto=120, netto=100):
     """Строит ингредиент с валидными зависимостями и переданными brutto/netto."""
-    return IngredientModel(
+    return IngredientModel.create(
         "Мука",
         "Мука пшеничная высшего сорта",
-        NomenclatureGroupModel("Бакалея"),
+        NomenclatureGroupModel.create("Бакалея"),
         MeasurementUnitModel.create_gram(),
         PositionType.RAW_MATERIAL,
         brutto,
@@ -22,8 +22,8 @@ def _build_ingredient(brutto=120, netto=100):
     )
 
 
-def test_ingredient_model__constructor__brutto_and_netto_are_stored():
-    """Конструктор сохраняет вес брутто и нетто."""
+def test_ingredient_model__create__brutto_and_netto_are_stored():
+    """Фабричный метод сохраняет вес брутто и нетто."""
     # Подготовка
     brutto = 120.5
     netto = 100
@@ -37,7 +37,7 @@ def test_ingredient_model__constructor__brutto_and_netto_are_stored():
 
 
 @pytest.mark.parametrize("value", [0, -1, "100", None, True, float("nan")])
-def test_ingredient_model__constructor__invalid_brutto_raises(value):
+def test_ingredient_model__create__invalid_brutto_raises(value):
     """Брутто, не являющееся положительным числом, вызывает исключение валидации."""
     # Подготовка
     netto = 100
@@ -51,7 +51,7 @@ def test_ingredient_model__constructor__invalid_brutto_raises(value):
 
 
 @pytest.mark.parametrize("value", [0, -1, "100", None, True, float("inf")])
-def test_ingredient_model__constructor__invalid_netto_raises(value):
+def test_ingredient_model__create__invalid_netto_raises(value):
     """Нетто, не являющееся положительным числом, вызывает исключение валидации."""
     # Подготовка
     brutto = 120

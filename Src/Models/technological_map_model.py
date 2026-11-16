@@ -12,10 +12,19 @@ class TechnologicalMapModel(NamedModel):
 
     _DISHES_ERROR = "Блюда технологической карты указаны некорректно"
 
-    def __init__(self, name: str, dishes: list[DishModel] | None = None) -> None:
-        """Конструктор технологической карты; без блюд карта создаётся пустой."""
-        super().__init__(name)
-        self.dishes = [] if dishes is None else dishes
+    def __init__(self) -> None:
+        """Инициализирует технологическую карту без имени и блюд."""
+        super().__init__()
+        self.__dishes: list[DishModel] = []
+
+    @classmethod
+    def create(cls, name: str, dishes: list[DishModel] | None = None) -> Self:
+        """Создаёт технологическую карту с проверенным именем и списком блюд."""
+        model = cls()
+        model.name = name
+        model.dishes = [] if dishes is None else dishes
+        model.validate()
+        return model
 
     @property
     def dishes(self) -> list[DishModel]:
@@ -47,4 +56,6 @@ class TechnologicalMapModel(NamedModel):
         units: dict[str, MeasurementUnitModel],
     ) -> Self:
         """Фабричный метод: создаёт составную карту «Пицца Маргарита»."""
-        return cls("Пицца Маргарита", DishModel.create_margherita_dishes(groups, units))
+        return cls.create(
+            "Пицца Маргарита", DishModel.create_margherita_dishes(groups, units)
+        )

@@ -13,20 +13,32 @@ class NomenclatureModel(NamedModel):
     _NAME_MAX_LENGTH = 50
     _FULL_NAME_MAX_LENGTH = 255
 
-    def __init__(
-        self,
+    def __init__(self) -> None:
+        """Инициализирует номенклатуру без заполненных обязательных полей."""
+        super().__init__()
+        self.__full_name = ""
+        self.__group: NomenclatureGroupModel | None = None
+        self.__measurement_unit: MeasurementUnitModel | None = None
+        self.__position_type: PositionType | None = None
+
+    @classmethod
+    def create(
+        cls,
         name: str,
         full_name: str,
         group: NomenclatureGroupModel,
         measurement_unit: MeasurementUnitModel,
         position_type: PositionType,
-    ):
-        """Конструктор номенклатуры."""
-        super().__init__(name)
-        self.full_name = full_name
-        self.group = group
-        self.measurement_unit = measurement_unit
-        self.position_type = position_type
+    ) -> Self:
+        """Создаёт номенклатуру с проверенными полями."""
+        model = cls()
+        model.name = name
+        model.full_name = full_name
+        model.group = group
+        model.measurement_unit = measurement_unit
+        model.position_type = position_type
+        model.validate()
+        return model
 
     @property
     def full_name(self):
@@ -99,63 +111,63 @@ class NomenclatureModel(NamedModel):
     ) -> list[Self]:
         """Фабричный метод: создаёт номенклатуру «Пиццы Маргарита» из справочников."""
         return [
-            cls(
+            cls.create(
                 "Мука пшеничная",
                 "Мука пшеничная высшего сорта",
                 groups["Бакалея"],
                 units["килограмм"],
                 PositionType.RAW_MATERIAL,
             ),
-            cls(
+            cls.create(
                 "Дрожжи сухие",
                 "Дрожжи хлебопекарные сухие",
                 groups["Бакалея"],
                 units["грамм"],
                 PositionType.RAW_MATERIAL,
             ),
-            cls(
+            cls.create(
                 "Соль",
                 "Соль поваренная пищевая",
                 groups["Бакалея"],
                 units["грамм"],
                 PositionType.RAW_MATERIAL,
             ),
-            cls(
+            cls.create(
                 "Масло оливковое",
                 "Масло оливковое Extra Virgin",
                 groups["Бакалея"],
                 units["миллилитр"],
                 PositionType.RAW_MATERIAL,
             ),
-            cls(
+            cls.create(
                 "Сыр Моцарелла",
                 "Сыр Моцарелла для пиццы 45%",
                 groups["Молочные продукты"],
                 units["килограмм"],
                 PositionType.RAW_MATERIAL,
             ),
-            cls(
+            cls.create(
                 "Томаты",
                 "Томаты свежие",
                 groups["Овощи"],
                 units["килограмм"],
                 PositionType.RAW_MATERIAL,
             ),
-            cls(
+            cls.create(
                 "Базилик",
                 "Базилик зелёный свежий",
                 groups["Овощи"],
                 units["грамм"],
                 PositionType.RAW_MATERIAL,
             ),
-            cls(
+            cls.create(
                 "Тесто для пиццы",
                 "Тесто дрожжевое для пиццы",
                 groups["Полуфабрикаты"],
                 units["килограмм"],
                 PositionType.SEMI_FINISHED,
             ),
-            cls(
+            cls.create(
                 "Пицца Маргарита",
                 "Пицца Маргарита 30 см",
                 groups["Блюда"],

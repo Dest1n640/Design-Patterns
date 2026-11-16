@@ -5,6 +5,7 @@ from copy import copy
 import pytest
 
 from Src.Core.exception import ConflictException, ValidationException
+from Src.Core.validation import Validation
 from Src.Logics.entity_service import EntityService
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.measurement_unit_model import MeasurementUnitModel
@@ -17,8 +18,8 @@ def test_entity_service__model_crud__changes_applied():
     # Подготовка
     storage = StorageManager()
     service = EntityService(storage)
-    model = NomenclatureGroupModel("Группа")
-    replacement = NomenclatureGroupModel("Новое имя")
+    model = NomenclatureGroupModel.create("Группа")
+    replacement = NomenclatureGroupModel.create("Новое имя")
     replacement.id = model.id
 
     # Действия
@@ -64,9 +65,9 @@ def test_entity_service__conflicting_nested_model__graph_kept():
     storage = StorageManager()
     service = EntityService(storage)
     kilogram = service.create(MeasurementUnitModel.create_kilogram())
-    conflicting = MeasurementUnitModel("килограмм", 1)
+    conflicting = MeasurementUnitModel.create("килограмм", 1)
     conflicting.id = kilogram.id
-    candidate = MeasurementUnitModel("тонна", 1000, conflicting)
+    candidate = MeasurementUnitModel.create("тонна", 1000, conflicting)
 
     # Действия
     with pytest.raises(ConflictException):
@@ -99,7 +100,7 @@ def test_entity_service__duplicate_id__original_model_kept():
     # Подготовка
     storage = StorageManager()
     service = EntityService(storage)
-    original = service.create(NomenclatureGroupModel("Группа"))
+    original = service.create(NomenclatureGroupModel.create("Группа"))
     candidate = MeasurementUnitModel.create_gram()
     candidate.id = original.id
 
@@ -117,7 +118,7 @@ def test_entity_service__wrong_replacement_type__original_model_kept():
     # Подготовка
     storage = StorageManager()
     service = EntityService(storage)
-    original = service.create(NomenclatureGroupModel("Группа"))
+    original = service.create(NomenclatureGroupModel.create("Группа"))
 
     # Действия
     with pytest.raises(ValidationException):
@@ -171,30 +172,39 @@ def test_entity_service__cyclic_model__graph_not_saved():
     assert gram.base_unit is gram
 
 
-def test_entity_service__readonly_nested_model__stored_instance_reused(
+def test_entity_service__new_nested_model__stored_instance_reused(
     register_entity_type,
 ):
-    """Вложенная модель без сеттера также связывается с общим экземпляром."""
+    """Новая модель со вложенным объектом связывается с общим экземпляром."""
 
     # Подготовка
     class ExtraGroupModel(NomenclatureGroupModel):
-        """Дополнительная модель с неизменяемой ссылкой на единицу измерения."""
+        """Дополнительная модель со ссылкой на единицу измерения."""
 
-        def __init__(self, name: str, unit: MeasurementUnitModel) -> None:
-            """Создаёт группу со вложенной единицей измерения."""
-            super().__init__(name)
-            self.__unit = unit
+        def __init__(self) -> None:
+            """Создаёт группу без заполненных свойств."""
+            super().__init__()
+            self.__unit = None
 
         @property
         def unit(self) -> MeasurementUnitModel:
             """Возвращает единицу измерения группы."""
             return self.__unit
 
+        @unit.setter
+        def unit(self, value: MeasurementUnitModel) -> None:
+            """Устанавливает единицу измерения группы."""
+            self.__unit = Validation.validate_instance(
+                value, MeasurementUnitModel, "unit", "Ожидается единица измерения"
+            )
+
     register_entity_type("extra_groups", ExtraGroupModel)
     storage = StorageManager()
     service = EntityService(storage)
     gram = service.create(MeasurementUnitModel.create_gram())
-    candidate = ExtraGroupModel("Группа", copy(gram))
+    candidate = ExtraGroupModel()
+    candidate.name = "Группа"
+    candidate.unit = copy(gram)
 
     # Действия
     created = service.create(candidate)
@@ -204,3 +214,19 @@ def test_entity_service__readonly_nested_model__stored_instance_reused(
     assert candidate.unit is not gram
     assert len(storage.measurement_units) == 1
     assert storage.get_entity("extra_groups", created.id) is created
+
+
+def test_entity_service__unfilled_model__storage_kept():
+    """Сервис отклоняет незаполненную модель до изменения хранилища."""
+    # Подготовка
+    storage = StorageManager()
+    service = EntityService(storage)
+    model = NomenclatureGroupModel()
+
+    # Действия
+    with pytest.raises(ValidationException):
+        service.create(model)
+
+    # Проверки
+    assert storage.get_all_models() == []
+    assert model.name == ""

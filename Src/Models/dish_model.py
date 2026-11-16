@@ -13,13 +13,23 @@ class DishModel(NamedModel):
 
     _INGREDIENTS_ERROR = "Состав блюда указан некорректно"
 
-    def __init__(
-        self, name: str, ingredients: list[IngredientModel | Self], recipe: str
-    ):
-        """Конструктор блюда."""
-        super().__init__(name)
-        self.ingredients = ingredients
-        self.recipe = recipe
+    def __init__(self) -> None:
+        """Инициализирует блюдо без заполненных обязательных полей."""
+        super().__init__()
+        self.__ingredients: list[IngredientModel | Self] = []
+        self.__recipe = ""
+
+    @classmethod
+    def create(
+        cls, name: str, ingredients: list[IngredientModel | Self], recipe: str
+    ) -> Self:
+        """Создаёт блюдо с проверенным составом и рецептом."""
+        model = cls()
+        model.name = name
+        model.ingredients = ingredients
+        model.recipe = recipe
+        model.validate()
+        return model
 
     @property
     def ingredients(self) -> list[IngredientModel | Self]:
@@ -102,8 +112,10 @@ class DishModel(NamedModel):
                 "7. Сразу после выпечки выложить листья базилика.",
             ]
         )
-        dough = cls("Тесто для пиццы", ingredients["Тесто для пиццы"], dough_recipe)
-        pizza = cls(
+        dough = cls.create(
+            "Тесто для пиццы", ingredients["Тесто для пиццы"], dough_recipe
+        )
+        pizza = cls.create(
             "Пицца Маргарита",
             [dough, *ingredients["Пицца Маргарита"]],
             pizza_recipe,

@@ -38,8 +38,8 @@ def test_deserialize_factory__saved_units__fields_and_nested_models_restored(uni
             assert loaded.base_unit.base_unit is None
 
 
-def test_deserialize_factory__optional_argument_absent__constructor_default_used():
-    """Отсутствующий base_unit получает значение по умолчанию из конструктора."""
+def test_deserialize_factory__optional_field_absent__model_default_used():
+    """Отсутствующий base_unit сохраняет значение по умолчанию пустой модели."""
     # Подготовка
     data = {"type": "MeasurementUnitModel", "name": "грамм", "coefficient": 1}
 
@@ -54,8 +54,8 @@ def test_deserialize_factory__optional_argument_absent__constructor_default_used
 
 
 @pytest.mark.parametrize("field", ["name", "coefficient"])
-def test_deserialize_factory__required_argument_absent__raises(field):
-    """Отсутствующий обязательный аргумент вызывает ошибку с именем поля."""
+def test_deserialize_factory__required_field_absent__raises(field):
+    """Отсутствующее обязательное поле вызывает ошибку с именем поля."""
     # Подготовка
     data = {"type": "MeasurementUnitModel", "name": "грамм", "coefficient": 1}
     del data[field]
@@ -98,7 +98,7 @@ def test_deserialize_factory__nested_collections__structure_and_values_kept():
     ("field", "value"), [("coefficient", 0), ("id", ""), ("base_unit", "грамм")]
 )
 def test_deserialize_factory__invalid_model_field__validation_preserved(field, value):
-    """Конструктор и сеттер id продолжают проверять загруженные значения."""
+    """Сеттеры и итоговая проверка модели проверяют загруженные значения."""
     # Подготовка
     data = {"type": "MeasurementUnitModel", "name": "грамм", "coefficient": 1}
     data[field] = value
@@ -253,3 +253,19 @@ def test_deserialize_factory__unused_nested_field__extra_model_ignored():
     # Проверки
     assert len(factory.models) == 1
     assert factory.models[0] is model
+
+
+def test_deserialize_factory__optional_list_absent__independent_defaults_used():
+    """Отсутствующий список сохраняет независимое значение по умолчанию модели."""
+    # Подготовка
+    factory = DeserializeFactory()
+    source = {"type": "TechnologicalMapModel", "name": "Карта"}
+
+    # Действия
+    first = factory.convert(source)
+    second = factory.convert(source)
+
+    # Проверки
+    assert first.dishes == second.dishes == []
+    assert first is not second
+    assert first.id != second.id

@@ -4,10 +4,27 @@ import pytest
 
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.exception import ValidationException
+from Src.Logics.entity_type import EntityType
 
 
 class _AbstractModelStub(AbstractModel):
     """Заглушка-наследник для тестирования AbstractModel."""
+
+
+@pytest.mark.parametrize("model_type", [item.value for item in EntityType])
+def test_abstract_model__unfilled_domain_model__validation_error(model_type):
+    """Пустая доменная модель создаётся без аргументов и отклоняется при проверке."""
+    # Подготовка
+    model = model_type()
+    original_id = model.id
+
+    # Действия
+    with pytest.raises(ValidationException):
+        model.validate()
+
+    # Проверки
+    assert model.id == original_id
+    assert original_id
 
 
 def test_abstract_model__constructor__id_is_not_empty():

@@ -9,4 +9,4 @@ class RestaurantModel(NamedModel):
     @classmethod
     def create_default_restaurants(cls) -> list[Self]:
         """Фабричный метод: создаёт рестораны сети."""
-        return [cls("Ромашка Центральный"), cls("Ромашка Северный")]
+        return [cls.create("Ромашка Центральный"), cls.create("Ромашка Северный")]
