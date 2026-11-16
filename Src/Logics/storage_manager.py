@@ -1,6 +1,5 @@
 import json
 import os
-from copy import copy
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from threading import RLock
@@ -8,7 +7,6 @@ from typing import Self
 
 from Src.Core.abstract_manager import AbstractManager
 from Src.Core.abstract_model import AbstractModel
-from Src.Core.common import Common
 from Src.Core.exception import (
     ConflictException,
     NotFoundException,
@@ -70,6 +68,11 @@ class StorageManager(AbstractManager):
         return self._settings
 
     @property
+    def organization_id(self) -> str | None:
+        """Возвращает код организации, выбранной при загрузке хранилища."""
+        return self._organization_id
+
+    @property
     def measurement_units(self) -> list[MeasurementUnitModel]:
         """Возвращает единицы измерения."""
         return self.get_entities("measurement_units")
@@ -124,137 +127,33 @@ class StorageManager(AbstractManager):
                     f"Сущность '{entity_type}' с кодом '{entity_id}' не найдена"
                 ) from ex
 
-    def create_entity(self, entity_type: str, data: dict) -> AbstractModel:
-        """Создаёт сущность и новые вложенные объекты после проверки всего запроса."""
+    def get_all_models(self) -> list[AbstractModel]:
+        """Возвращает объекты всех коллекций под общей блокировкой."""
         with self._lock:
-            source = self._entity_source(entity_type, data)
-            existing = self._all_models()
-            factory = DeserializeFactory()
-            model = factory.convert(source, existing)
-            if any(entity.id == model.id for entity in existing):
-                raise ConflictException("id", "Сущность с таким кодом уже существует")
-            self._commit_collections(self._merge_models(factory.models))
-            return model
+            return [
+                model
+                for collection in self._collections.values()
+                for model in collection.values()
+            ]
 
-    def update_entity(
-        self, entity_type: str, entity_id: str, data: dict
-    ) -> AbstractModel:
-        """Проверяет частичное изменение и применяет его с сохранением общих ссылок."""
+    def commit(self, models: list[AbstractModel]) -> None:
+        """Атомарно сохраняет набор моделей перед заменой индексов хранилища."""
         with self._lock:
-            original = self.get_entity(entity_type, entity_id)
-            changes = self._entity_source(entity_type, data)
-            field_types = Common.get_field_types(type(original))
-            for field in changes:
-                if field not in field_types and field != "type":
-                    raise ValidationException(field, "Поле недоступно для изменения")
-            serialized = SerializeFactory().convert(original)
-            source = {
-                field: value
-                for field, value in serialized.items()
-                if field in field_types
-            } | changes
-            existing = [model for model in self._all_models() if model is not original]
-            factory = DeserializeFactory()
-            updated = factory.convert(source, existing)
-            id_changed = updated.id != original.id
-            if id_changed:
-                if any(model.id == updated.id for model in existing):
-                    raise ConflictException("id", "Код уже занят другой сущностью")
-                self._ensure_unreferenced(original)
-            collections = self._merge_models(factory.models)
-            if id_changed:
-                del collections[entity_type][original.id]
-            collections[entity_type][updated.id] = original
-            previous = copy(original)
-            original.replace_state(updated)
-            try:
-                self._commit_collections(collections)
-            except Exception:
-                original.replace_state(previous)
-                raise
-            return original
-
-    def delete_entity(self, entity_type: str, entity_id: str) -> None:
-        """Удаляет сущность без входящих ссылок, сохраняя вложенные модели."""
-        with self._lock:
-            model = self.get_entity(entity_type, entity_id)
-            self._ensure_unreferenced(model)
-            collections = self._collections.copy()
-            collections[entity_type] = collections[entity_type].copy()
-            del collections[entity_type][entity_id]
-            self._commit_collections(collections)
-
-    def _commit_collections(
-        self, collections: dict[str, dict[str, AbstractModel]]
-    ) -> None:
-        """Сохраняет изменения на диск перед заменой текущих коллекций."""
-        if self._file_name:
-            self._write_snapshot(self._file_name, collections)
-        self._collections = collections
-
-    def _entity_source(self, entity_type: str, data: dict) -> dict:
-        """Проверяет коллекцию и тип входных данных, дополняя их меткой модели."""
-        self._get_collection(entity_type)
-        data = Validation.validate_instance(
-            data, dict, "entity", "Сущность должна быть JSON-объектом"
-        )
-        type_name = ENTITY_TYPES[entity_type].__name__
-        if data.get("type", type_name) != type_name:
-            raise ValidationException("type", "Тип модели не соответствует коллекции")
-        return data | {"type": type_name}
-
-    def _all_models(self) -> list[AbstractModel]:
-        """Возвращает объекты всех коллекций для проверки кодов и общих ссылок."""
-        return [
-            model
-            for collection in self._collections.values()
-            for model in collection.values()
-        ]
-
-    def _merge_models(
-        self, models: list[AbstractModel]
-    ) -> dict[str, dict[str, AbstractModel]]:
-        """Собирает новые коллекции без изменения текущего состояния хранилища."""
-        collections = {
-            name: values.copy() for name, values in self._collections.items()
-        }
-        collection_names = {
-            model_type: name for name, model_type in ENTITY_TYPES.items()
-        }
-        for model in models:
-            if type(model) not in collection_names:
-                raise ValidationException("type", "Ожидается доменная модель")
-            collections[collection_names[type(model)]][model.id] = model
-        return collections
-
-    def _ensure_unreferenced(self, model: AbstractModel) -> None:
-        """Запрещает удаление и смену кода при входящих ссылках на сущность."""
-        if model.id == self._organization_id:
-            raise ConflictException("id", "Организация используется настройками")
-        owners = self._all_models()
-        if self._settings is not None:
-            owners.append(self._settings)
-        for owner in owners:
-            if owner is model:
-                continue
-            if any(
-                self._references(getattr(owner, field), model.id)
-                for field in Common.get_fields(owner)
-            ):
-                raise ConflictException(
-                    "id", f"Сущность используется моделью '{type(owner).__name__}'"
-                )
-
-    @staticmethod
-    def _references(value: object, entity_id: str) -> bool:
-        """Проверяет наличие ссылки на код в свойстве или вложенной коллекции."""
-        if isinstance(value, AbstractModel):
-            return value.id == entity_id
-        if isinstance(value, dict):
-            value = list(value.values())
-        if isinstance(value, list):
-            return any(StorageManager._references(item, entity_id) for item in value)
-        return False
+            collections = {name: {} for name in ENTITY_TYPES}
+            collection_names = {
+                model_type: name for name, model_type in ENTITY_TYPES.items()
+            }
+            entity_ids = set()
+            for model in models:
+                if type(model) not in collection_names:
+                    raise ValidationException("type", "Ожидается доменная модель")
+                if model.id in entity_ids:
+                    raise ConflictException("id", "Коды моделей не должны повторяться")
+                entity_ids.add(model.id)
+                collections[collection_names[type(model)]][model.id] = model
+            if self._file_name:
+                self._write_snapshot(self._file_name, collections)
+            self._collections = collections
 
     def _get_collection(self, entity_type: str) -> dict[str, AbstractModel]:
         """Возвращает коллекцию или сообщает об отсутствии её регистрации."""

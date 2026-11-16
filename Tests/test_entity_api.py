@@ -12,9 +12,11 @@ from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 from Src.Logics.Convertors.basic_serialize import BasicSerialize
 from Src.Logics.deserialize_factory import DeserializeFactory
+from Src.Logics.entity_service import EntityService
 from Src.Logics.model_registry import ENTITY_TYPES
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
+from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.settings_model import SettingsModel
 
 
@@ -582,9 +584,9 @@ def test_entity_api__concurrent_get_and_patch__consistent_response(
     def update_unit():
         """Изменяет единицу измерения из параллельного потока."""
         writer_started.set()
-        storage.update_entity(
-            "measurement_units", unit["id"], {"coefficient": 1, "base_unit": None}
-        )
+        replacement = MeasurementUnitModel("единица", 1)
+        replacement.id = unit["id"]
+        EntityService(storage).update("measurement_units", unit["id"], replacement)
         writer_finished.set()
 
     monkeypatch.setattr(BasicSerialize, "convert", paused_convert)

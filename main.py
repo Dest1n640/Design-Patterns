@@ -9,6 +9,8 @@ from Src.Core.exception import (
     ValidationException,
 )
 from Src.Core.report_type import ReportType
+from Src.Logics.entity_request_adapter import EntityRequestAdapter
+from Src.Logics.entity_service import EntityService
 from Src.Logics.report_factory import ReportFactory
 from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
@@ -97,7 +99,10 @@ def get_entity(entity_type: str, entity_id: str) -> dict:
 def create_entity(entity_type: str, data: dict) -> dict:
     """Создаёт сущность выбранной коллекции и возвращает её полное описание."""
     with storage_manager:
-        entity = storage_manager.create_entity(entity_type, data)
+        model = EntityRequestAdapter.create(
+            entity_type, data, storage_manager.get_all_models()
+        )
+        entity = EntityService(storage_manager).create(model)
         return SerializeFactory().convert(entity)
 
 
@@ -109,7 +114,11 @@ def create_entity(entity_type: str, data: dict) -> dict:
 def update_entity(entity_type: str, entity_id: str, data: dict) -> dict:
     """Изменяет переданные поля, заменяя списки целиком и проверяя всю модель."""
     with storage_manager:
-        entity = storage_manager.update_entity(entity_type, entity_id, data)
+        original = storage_manager.get_entity(entity_type, entity_id)
+        model = EntityRequestAdapter.update(
+            original, data, storage_manager.get_all_models()
+        )
+        entity = EntityService(storage_manager).update(entity_type, entity_id, model)
         return SerializeFactory().convert(entity)
 
 
@@ -122,7 +131,7 @@ def update_entity(entity_type: str, entity_id: str, data: dict) -> dict:
 )
 def delete_entity(entity_type: str, entity_id: str) -> Response:
     """Удаляет сущность, сохраняя связанные с ней вложенные объекты в коллекциях."""
-    storage_manager.delete_entity(entity_type, entity_id)
+    EntityService(storage_manager).delete(entity_type, entity_id)
     return Response(status_code=204)
 
 

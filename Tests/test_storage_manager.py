@@ -81,6 +81,30 @@ def test_storage_manager__get_entity_types_empty_storage__all_collections():
     assert set(entity_types) == set(ALL_COLLECTIONS)
 
 
+@pytest.mark.parametrize("invalid_batch", ["duplicate_id", "unsupported_model"])
+def test_storage_manager__invalid_commit__file_and_models_kept(tmp_path, invalid_batch):
+    """Ошибка набора моделей отклоняет сохранение целиком и сохраняет прежний файл."""
+    # Подготовка
+    manager = StorageManager()
+    file_name = tmp_path / "storage.json"
+    manager.start(_build_settings(False), str(file_name))
+    original = NomenclatureGroupModel("Группа")
+    manager.commit([original])
+    duplicate = MeasurementUnitModel.create_gram()
+    duplicate.id = original.id
+    invalid_model = duplicate if invalid_batch == "duplicate_id" else SettingsModel()
+    original_file = file_name.read_bytes()
+
+    # Действия
+    with pytest.raises(ValidationException):
+        manager.commit([original, invalid_model])
+
+    # Проверки
+    assert file_name.read_bytes() == original_file
+    assert manager.get_all_models() == [original]
+    assert manager.get_entity("nomenclature_groups", original.id) is original
+
+
 def test_storage_manager__registered_model__read_and_save_supported(
     monkeypatch, tmp_path
 ):
