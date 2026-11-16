@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from Src.Core.exception import ApplicationException, ValidationException
+from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
 
 
@@ -87,32 +88,32 @@ def test_settings_manager__two_instances__share_settings():
 def test_settings_manager__read_default_file__organization_matches_json(
     settings_data,
 ):
-    """Реквизиты организации совпадают с разделом company в settings.json."""
+    """Реквизиты организации совпадают с разделом organization в settings.json."""
     # Подготовка
-    company = settings_data["company"]
+    expected = settings_data["organization"]
 
     # Действия
     organization = _build_loaded_manager().settings.organization
 
     # Проверки
-    assert organization.name == company["name"]
-    assert organization.inn == company["inn"]
-    assert organization.bic == company["bic"]
-    assert organization.curr_account == company["curr_account"]
-    assert organization.legal_form == company["legal_form"]
+    assert organization.name == expected["name"]
+    assert organization.inn == expected["inn"]
+    assert organization.bic == expected["bic"]
+    assert organization.curr_account == expected["curr_account"]
+    assert organization.legal_form == expected["legal_form"]
 
 
 def test_settings_manager__read_default_file__names_match_json(settings_data):
     """ФИО руководителя и главного бухгалтера совпадают с settings.json."""
     # Подготовка
-    company = settings_data["company"]
+    expected = settings_data
 
     # Действия
     settings = _build_loaded_manager().settings
 
     # Проверки
-    assert settings.boss_name == company["boss_name"]
-    assert settings.accountant_name == company["accountant_name"]
+    assert settings.boss_name == expected["boss_name"]
+    assert settings.accountant_name == expected["accountant_name"]
 
 
 def test_settings_manager__read_default_file__first_start_matches_json(
@@ -160,12 +161,12 @@ def test_settings_manager__read_unknown_response_format__raises_validation_excep
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_settings_manager__read_without_company__raises_validation_exception(
+def test_settings_manager__read_without_organization__raises_validation_exception(
     settings_data, tmp_path
 ):
-    """Файл настроек без раздела company вызывает исключение валидации."""
+    """Файл настроек без раздела organization вызывает исключение валидации."""
     # Подготовка
-    settings_data.pop("company")
+    settings_data.pop("organization")
     file_name = _write_json(tmp_path, settings_data)
     manager = SettingsManager()
 
@@ -242,7 +243,7 @@ def test_settings_manager__read_invalid_after_success__keeps_previous_settings(
     # Подготовка
     manager = _build_loaded_manager()
     settings = manager.settings
-    settings_data["company"]["inn"] = "abc"
+    settings_data["organization"]["inn"] = "abc"
     file_name = _write_json(tmp_path, settings_data)
 
     # Действия
@@ -272,8 +273,8 @@ def test_settings_manager__read_from_other_directory__reads_default_file(
 @pytest.mark.parametrize(
     ("section", "field", "value"),
     [
-        ("company", "boss_name", None),
-        ("company", "accountant_name", " "),
+        (None, "boss_name", None),
+        (None, "accountant_name", " "),
         (None, "first_start", "true"),
         (None, "first_start", None),
         (None, "response_format", None),
@@ -298,5 +299,66 @@ def test_settings_manager__invalid_property__previous_settings_kept(
 
     # Проверки
     assert exc_info.value.field == field
+    assert manager.settings is original
+    assert manager.is_loaded
+
+
+def test_settings_manager__serialized_settings__all_fields_and_ids_restored(tmp_path):
+    """Полный результат сериализации настроек загружается без изменения структуры."""
+    # Подготовка
+    manager = _build_loaded_manager()
+    source = SerializeFactory().convert(manager.settings)
+    source["id"] = "settings-config"
+    source["organization"]["id"] = "organization-config"
+    file_name = _write_json(tmp_path, source)
+
+    # Действия
+    manager.read(file_name)
+
+    # Проверки
+    assert SerializeFactory().convert(manager.settings) == source
+
+
+@pytest.mark.parametrize("field", ["boss_name", "accountant_name", "response_format"])
+def test_settings_manager__required_field_missing__previous_settings_kept(
+    settings_data, tmp_path, field
+):
+    """Отсутствующее обязательное поле отклоняется без замены настроек."""
+    # Подготовка
+    manager = _build_loaded_manager()
+    original = manager.settings
+    del settings_data[field]
+    file_name = _write_json(tmp_path, settings_data)
+
+    # Действия
+    with pytest.raises(ValidationException) as error:
+        manager.read(file_name)
+
+    # Проверки
+    assert error.value.field == field
+    assert manager.settings is original
+
+
+@pytest.mark.parametrize("case", ["missing_type", "wrong_model", "missing_nested_type"])
+def test_settings_manager__invalid_model_tags__previous_settings_kept(
+    settings_data, tmp_path, case
+):
+    """Неверные метки типов отклоняются без замены ранее загруженных настроек."""
+    # Подготовка
+    manager = _build_loaded_manager()
+    original = manager.settings
+    if case == "missing_type":
+        del settings_data["type"]
+    elif case == "wrong_model":
+        settings_data = settings_data["organization"]
+    else:
+        del settings_data["organization"]["type"]
+    file_name = _write_json(tmp_path, settings_data)
+
+    # Действия
+    with pytest.raises(ValidationException):
+        manager.read(file_name)
+
+    # Проверки
     assert manager.settings is original
     assert manager.is_loaded

@@ -35,20 +35,8 @@ class SettingsManager(AbstractManager):
         data = Validation.validate_instance(
             self._data, dict, "settings", "Настройки должны быть json-объектом"
         )
-        company = Validation.validate_instance(
-            data.get("company"),
-            dict,
-            "company",
-            "Раздел company отсутствует или некорректен",
+        settings = DeserializeFactory().convert(data)
+        self._settings = Validation.validate_instance(
+            settings, SettingsModel, "settings", "Ожидается модель настроек"
         )
-
-        source = {
-            "type": "SettingsModel",
-            "organization": company | {"type": "OrganizationModel"},
-            "boss_name": company.get("boss_name"),
-            "accountant_name": company.get("accountant_name"),
-            "first_start": data.get("first_start"),
-            "response_format": data.get("response_format"),
-        }
-        self._settings = DeserializeFactory().convert(source)
         return True
