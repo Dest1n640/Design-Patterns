@@ -5,6 +5,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from threading import Event
+from unittest.mock import Mock
 
 import pytest
 
@@ -14,6 +15,7 @@ from Src.Logics.Convertors.basic_serialize import BasicSerialize
 from Src.Logics.deserialize_factory import DeserializeFactory
 from Src.Logics.entity_service import EntityService
 from Src.Logics.entity_type import EntityType
+from Src.Logics.model_index import ModelIndex
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
 from Src.Models.measurement_unit_model import MeasurementUnitModel
@@ -143,6 +145,101 @@ def test_entity_api__all_model_types__crud_lifecycle(api, entity_payloads, entit
     assert deleted_status == 204
     assert deleted is None
     assert missing_status == 404
+
+
+@pytest.mark.parametrize("persistent", [False, True])
+def test_entity_api__incremental_crud__full_index_scan_unused(
+    api, monkeypatch, tmp_path, persistent
+):
+    """CRUD изменяет счётчики без чтения всех моделей и пересоздания индекса."""
+    # Подготовка
+    storage = StorageManager()
+    if persistent:
+        storage.start(SettingsModel(), str(tmp_path / "storage.json"))
+    blocked = Mock(side_effect=AssertionError("Полный обход индекса при CRUD"))
+    monkeypatch.setattr(StorageManager, "get_all_models", blocked)
+    monkeypatch.setattr(StorageManager, "_build_indexes", blocked)
+    monkeypatch.setattr(ModelIndex, "register", blocked)
+
+    # Действия
+    created_status, gram = api(
+        "POST", "/entities/measurement_units", {"name": "грамм", "coefficient": 1}
+    )
+    owner_status, kilogram = api(
+        "POST",
+        "/entities/measurement_units",
+        {"name": "килограмм", "coefficient": 1000, "base_unit": gram},
+    )
+    renamed_status, _ = api(
+        "PATCH", f"/entities/measurement_units/{kilogram['id']}", {"id": "renamed"}
+    )
+    protected_status, _ = api("DELETE", f"/entities/measurement_units/{gram['id']}")
+    changed_status, updated = api(
+        "PATCH",
+        "/entities/measurement_units/renamed",
+        {
+            "base_unit": {
+                "type": "MeasurementUnitModel",
+                "id": "new-gram",
+                "name": "Новая базовая единица",
+                "coefficient": 1,
+            }
+        },
+    )
+    released_count = storage.get_reference_count(gram["id"])
+    new_count = storage.get_reference_count("new-gram")
+    deleted_gram_status, _ = api("DELETE", f"/entities/measurement_units/{gram['id']}")
+    deleted_owner_status, _ = api("DELETE", "/entities/measurement_units/renamed")
+    remaining_count = storage.get_reference_count("new-gram")
+    deleted_new_status, _ = api("DELETE", "/entities/measurement_units/new-gram")
+
+    # Проверки
+    assert (created_status, owner_status) == (201, 201)
+    assert (renamed_status, protected_status, changed_status) == (200, 409, 200)
+    assert updated["base_unit"]["id"] == "new-gram"
+    assert (released_count, new_count, remaining_count) == (0, 1, 0)
+    assert (deleted_gram_status, deleted_owner_status, deleted_new_status) == (
+        204,
+        204,
+        204,
+    )
+    assert storage.measurement_units == []
+    blocked.assert_not_called()
+
+
+def test_entity_api__renamed_root_reuses_old_id__cross_collection_links_restored(
+    api, entity_payloads, tmp_path
+):
+    """Смена кода сохраняет вложенную модель другого типа со старым кодом корня."""
+    # Подготовка
+    storage = StorageManager()
+    file_name = tmp_path / "storage.json"
+    storage.start(SettingsModel(), str(file_name))
+    _, warehouse = api("POST", "/entities/warehouses", entity_payloads["warehouses"])
+    old_id = warehouse["id"]
+    previous_premises_id = warehouse["premises"]["id"]
+    changes = {
+        "id": "renamed-warehouse",
+        "premises": entity_payloads["premises"] | {"id": old_id},
+    }
+
+    # Действия
+    status, updated = api("PATCH", f"/entities/warehouses/{old_id}", changes)
+    missing_status, _ = api("GET", f"/entities/warehouses/{old_id}")
+    StorageManager._instance = None
+    restored = StorageManager()
+    restored.start(SettingsModel(), str(file_name))
+    loaded = restored.get_entity("warehouses", "renamed-warehouse")
+    premises = restored.get_entity("premises", old_id)
+
+    # Проверки
+    assert status == 200
+    assert missing_status == 404
+    assert updated["premises"]["id"] == old_id
+    assert loaded.premises is premises
+    assert restored.get_reference_count(old_id) == 1
+    assert restored.get_reference_count(previous_premises_id) == 0
+    assert restored.get_reference_count(loaded.id) == 0
 
 
 def test_entity_api__shared_reference__patch_updates_all_owners(api, entity_payloads):

@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.common import Common
 from Src.Core.exception import NotFoundException, ValidationException
@@ -12,7 +14,9 @@ class EntityRequestAdapter:
 
     @staticmethod
     def create(
-        entity_type: str, data: dict, existing_models: list[AbstractModel]
+        entity_type: str,
+        data: dict,
+        find_model: Callable[[str], AbstractModel | None],
     ) -> AbstractModel:
         """Восстанавливает модель выбранной коллекции с общими вложенными объектами."""
         try:
@@ -22,11 +26,13 @@ class EntityRequestAdapter:
         except KeyError as ex:
             raise NotFoundException(f"Коллекция '{entity_type}' не найдена") from ex
         source = EntityRequestAdapter._source(model_type, data)
-        return DeserializeFactory().convert(source, existing_models)
+        return DeserializeFactory(find_model).convert(source)
 
     @staticmethod
     def update(
-        original: AbstractModel, data: dict, existing_models: list[AbstractModel]
+        original: AbstractModel,
+        data: dict,
+        find_model: Callable[[str], AbstractModel | None],
     ) -> AbstractModel:
         """Объединяет PATCH с текущими полями и восстанавливает проверенную модель."""
         changes = EntityRequestAdapter._source(type(original), data)
@@ -38,8 +44,7 @@ class EntityRequestAdapter:
         source = {
             field: value for field, value in serialized.items() if field in field_types
         } | changes
-        existing = [model for model in existing_models if model is not original]
-        return DeserializeFactory().convert(source, existing)
+        return DeserializeFactory(find_model, original).convert(source)
 
     @staticmethod
     def _source(model_type: type[AbstractModel], data: dict) -> dict:

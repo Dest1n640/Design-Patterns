@@ -100,7 +100,7 @@ def create_entity(entity_type: str, data: dict) -> dict:
     """Создаёт сущность выбранной коллекции и возвращает её полное описание."""
     with storage_manager:
         model = EntityRequestAdapter.create(
-            entity_type, data, storage_manager.get_all_models()
+            entity_type, data, storage_manager.find_model
         )
         entity = EntityService(storage_manager).create(model)
         return SerializeFactory().convert(entity)
@@ -115,9 +115,7 @@ def update_entity(entity_type: str, entity_id: str, data: dict) -> dict:
     """Изменяет переданные поля, заменяя списки целиком и проверяя всю модель."""
     with storage_manager:
         original = storage_manager.get_entity(entity_type, entity_id)
-        model = EntityRequestAdapter.update(
-            original, data, storage_manager.get_all_models()
-        )
+        model = EntityRequestAdapter.update(original, data, storage_manager.find_model)
         entity = EntityService(storage_manager).update(entity_type, entity_id, model)
         return SerializeFactory().convert(entity)
 

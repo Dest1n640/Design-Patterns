@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from functools import partial
 
 from Src.Core.abstract_convertor import AbstractConvertor
@@ -17,13 +18,19 @@ from Src.Models.settings_model import SettingsModel
 class DeserializeFactory(AbstractConvertor):
     """Фабрика восстановления моделей из словарей и списков JSON."""
 
-    def __init__(self) -> None:
-        """Получает доменные типы из перечисления и добавляет модель настроек."""
+    def __init__(
+        self,
+        find_model: Callable[[str], AbstractModel | None] | None = None,
+        excluded_model: AbstractModel | None = None,
+    ) -> None:
+        """Получает типы моделей и поиск общих экземпляров для восстановления графа."""
         self.__model_types = {
             entity_type.value.__name__: entity_type.value for entity_type in EntityType
         }
         self.__model_types[SettingsModel.__name__] = SettingsModel
         self.__models: dict[str, AbstractModel] = {}
+        self.__find_model = find_model
+        self.__excluded_model = excluded_model
 
     @property
     def models(self) -> list[AbstractModel]:
@@ -36,7 +43,11 @@ class DeserializeFactory(AbstractConvertor):
         existing_models: list[AbstractModel] | None = None,
     ) -> object:
         """Восстанавливает граф с единым экземпляром каждой модели по id."""
-        models = {model.id: model for model in existing_models or []}
+        models = {
+            model.id: model
+            for model in existing_models or []
+            if model is not self.__excluded_model
+        }
         result = self._convert(source, models)
         self.__models = models
         return result
@@ -83,6 +94,10 @@ class DeserializeFactory(AbstractConvertor):
                 setattr(model, field, fields[field])
         model.validate()
         existing = models.get(model.id)
+        if existing is None and self.__find_model is not None:
+            existing = self.__find_model(model.id)
+            if existing is self.__excluded_model:
+                existing = None
         if existing is not None:
             serializer = SerializeFactory()
             if type(existing) is not model_class or (
@@ -91,6 +106,7 @@ class DeserializeFactory(AbstractConvertor):
                 raise ConflictException(
                     "id", f"Противоречивые данные модели с кодом '{model.id}'"
                 )
+            models[model.id] = existing
             return existing
         models[model.id] = model
         return model
