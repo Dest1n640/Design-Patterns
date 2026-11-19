@@ -659,6 +659,43 @@ def test_entity_api__new_enum_member__persistent_crud_supported(
     assert deleted_status == 204
 
 
+@pytest.mark.parametrize(
+    "values",
+    [
+        ["one", 2, 1.5, True, {"nested": [False, 0]}],
+        {"label": "one", "count": 2, "enabled": True, "empty": None},
+    ],
+)
+def test_entity_api__scalar_collection__values_preserved_after_restart(
+    api, monkeypatch, link_model_type, tmp_path, values
+):
+    """Списки и словари простых значений проходят CRUD и перезапуск."""
+    # Подготовка
+    import main
+
+    StorageManager._instance = None
+    storage = StorageManager()
+    file_name = tmp_path / "links.json"
+    storage.start(SettingsModel(), str(file_name))
+    monkeypatch.setattr(main, "storage_manager", storage)
+
+    # Действия
+    status, created = api(
+        "POST", "/entities/links", {"id": "fields", "name": "Поля", "links": values}
+    )
+    StorageManager._instance = None
+    restored = StorageManager()
+    restored.start(SettingsModel(), str(file_name))
+    monkeypatch.setattr(main, "storage_manager", restored)
+    read_status, loaded = api("GET", "/entities/links/fields")
+
+    # Проверки
+    assert status == 201
+    assert created["links"] == values
+    assert read_status == 200
+    assert loaded == created
+
+
 def test_entity_api__active_organization__settings_reference_preserved(api):
     """PATCH обновляет организацию в настройках, а её удаление блокируется."""
     # Подготовка
