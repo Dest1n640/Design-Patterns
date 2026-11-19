@@ -560,6 +560,32 @@ def test_entity_api__cross_field_patch__whole_model_validated(api):
     assert updated["coefficient"] == updated["base_coefficient"] == 2000
 
 
+def test_entity_api__linked_coefficient_overflow__patch_rolled_back(api, tmp_path):
+    """Переполнение коэффициента зависимой единицы откатывает PATCH."""
+    # Подготовка
+    file_name = tmp_path / "storage.json"
+    StorageManager().start(SettingsModel(), str(file_name))
+    path = "/entities/measurement_units"
+    _, base = api("POST", path, {"name": "Базовая", "coefficient": 1})
+    _, middle = api(
+        "POST", path, {"name": "Промежуточная", "coefficient": 1e150, "base_unit": base}
+    )
+    _, dependent = api(
+        "POST", path, {"name": "Зависимая", "coefficient": 1e150, "base_unit": middle}
+    )
+    original_file = file_name.read_bytes()
+
+    # Действия
+    status, _ = api("PATCH", f"{path}/{middle['id']}", {"coefficient": 1e170})
+    read_status, current = api("GET", f"{path}/{dependent['id']}")
+
+    # Проверки
+    assert status == 503
+    assert file_name.read_bytes() == original_file
+    assert read_status == 200
+    assert current == dependent
+
+
 @pytest.mark.parametrize(
     ("entity_type", "field"),
     [

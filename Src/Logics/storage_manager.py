@@ -379,7 +379,7 @@ class StorageManager(AbstractManager):
             target.parent.mkdir(parents=True, exist_ok=True)
             with temporary.open("x", encoding="utf-8") as file:
                 created = True
-                json.dump(data, file, ensure_ascii=False, indent=2)
+                json.dump(data, file, ensure_ascii=False, indent=2, allow_nan=False)
                 file.flush()
                 os.fsync(file.fileno())
             os.replace(temporary, target)
