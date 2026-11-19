@@ -1,6 +1,9 @@
+from urllib.parse import quote
+
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
+from starlette.convertors import StringConvertor, register_url_convertor
 
 from Src.Core.exception import (
     ConflictException,
@@ -30,6 +33,21 @@ WRITE_RESPONSES = {
     422: {"description": "Некорректное тело запроса или поля модели."},
     503: {"description": "Не удалось сохранить изменения в хранилище."},
 }
+
+REPORT_COLLECTIONS = {
+    "nomenclature": "nomenclature",
+    "measurement_unit": "measurement_units",
+    "recipe": "technological_maps",
+}
+
+
+class ReportEntityConvertor(StringConvertor):
+    """Распознаёт имена сущностей для маршрута отчёта без формата."""
+
+    regex = "|".join(REPORT_COLLECTIONS)
+
+
+register_url_convertor("report_entity", ReportEntityConvertor())
 
 
 @app.exception_handler(NotFoundException)
@@ -133,16 +151,25 @@ def delete_entity(entity_type: str, entity_id: str) -> Response:
     return Response(status_code=204)
 
 
-@app.get("/reports/{report_type}/{entity_type}/{code}")
+@app.get("/reports/{entity_type:report_entity}/{code:path}")
+def get_default_report(entity_type: str, code: str) -> Response:
+    """Отчёт в формате из настроек (create_default) по сущности и её коду."""
+    return build_response(None, entity_type, code)
+
+
+@app.get("/reports/{report_type}/{entity_type}/{code:path}")
 def get_report(report_type: ReportType, entity_type: str, code: str) -> Response:
     """Отчёт в указанном формате по сущности и её коду."""
     return build_response(report_type, entity_type, code)
 
 
-@app.get("/reports/{entity_type}/{code}")
-def get_default_report(entity_type: str, code: str) -> Response:
-    """Отчёт в формате из настроек (create_default) по сущности и её коду."""
-    return build_response(None, entity_type, code)
+app.add_api_route(
+    "/reports/{entity_type}/{code}",
+    get_default_report,
+    methods=["GET"],
+    name="get_report_for_unknown_entity",
+    include_in_schema=False,
+)
 
 
 def build_response(
@@ -150,16 +177,12 @@ def build_response(
 ) -> Response:
     """Строит отчёт по коду сущности в запрошенном формате или формате из настроек."""
     with storage_manager:
-        entities = {
-            "nomenclature": storage_manager.nomenclature,
-            "measurement_unit": storage_manager.measurement_units,
-            "recipe": storage_manager.technological_maps,
-        }.get(entity_type, [])
-        entity = next((e for e in entities if e.id == code), None)
-        if entity is None:
+        try:
+            entity = storage_manager.get_entity(REPORT_COLLECTIONS[entity_type], code)
+        except (KeyError, NotFoundException) as ex:
             raise HTTPException(
                 404, f"Сущность '{entity_type}' с кодом '{code}' не найдена"
-            )
+            ) from ex
         if report_type is None:
             report_type = settings_manager.settings.response_format
             builder = report_factory.create_default()
@@ -171,10 +194,16 @@ def build_response(
             raise HTTPException(400, ex.message) from ex
         if report.binary:
             file_name = f"{entity_type}_{code}.{report_type.value}"
+            encoded_name = quote(file_name, safe="")
+            disposition = (
+                f'attachment; filename="{file_name}"'
+                if encoded_name == file_name
+                else f"attachment; filename*=UTF-8''{encoded_name}"
+            )
             return Response(
                 report.binary,
                 media_type="application/octet-stream",
-                headers={"Content-Disposition": f'attachment; filename="{file_name}"'},
+                headers={"Content-Disposition": disposition},
             )
         return PlainTextResponse(report.text)
 

@@ -6,10 +6,12 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from threading import Event
 from unittest.mock import Mock
+from urllib.parse import unquote
 
 import pytest
 
 from Src.Core.named_model import NamedModel
+from Src.Core.report_type import ReportType
 from Src.Core.validation import Validation
 from Src.Logics.Convertors.basic_serialize import BasicSerialize
 from Src.Logics.deserialize_factory import DeserializeFactory
@@ -22,8 +24,10 @@ from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.settings_model import SettingsModel
 
 
-def _request(app, method: str, path: str, data: object = None) -> tuple[int, object]:
-    """Выполняет JSON-запрос через ASGI и возвращает статус и тело ответа."""
+def _asgi_response(
+    app, method: str, path: str, data: object = None
+) -> tuple[int, dict[bytes, bytes], bytes]:
+    """Выполняет запрос через ASGI и возвращает статус, заголовки и байты ответа."""
     messages = []
     body = b"" if data is None else json.dumps(data).encode()
 
@@ -50,14 +54,18 @@ def _request(app, method: str, path: str, data: object = None) -> tuple[int, obj
         "client": ("127.0.0.1", 1234),
     }
     asyncio.run(app(scope, receive, send))
-    status = next(
-        item["status"] for item in messages if item["type"] == "http.response.start"
-    )
+    start = next(item for item in messages if item["type"] == "http.response.start")
     content = b"".join(
         item.get("body", b"")
         for item in messages
         if item["type"] == "http.response.body"
     )
+    return start["status"], dict(start["headers"]), content
+
+
+def _request(app, method: str, path: str, data: object = None) -> tuple[int, object]:
+    """Выполняет запрос через ASGI и декодирует ответ JSON."""
+    status, _, content = _asgi_response(app, method, path, data)
     return status, json.loads(content) if content else None
 
 
@@ -694,6 +702,61 @@ def test_entity_api__scalar_collection__values_preserved_after_restart(
     assert created["links"] == values
     assert read_status == 200
     assert loaded == created
+
+
+@pytest.mark.parametrize("entity_id", ["simple", "единица-1", "section/code"])
+@pytest.mark.parametrize("format_prefix", ["csv/", ""])
+def test_entity_api__report_id__csv_download_available(
+    api, monkeypatch, entity_id, format_prefix
+):
+    """Отчёты по кодам из CRUD скачиваются с корректным именем файла."""
+    # Подготовка
+    import main
+
+    monkeypatch.setattr(
+        main.settings_manager.settings, "response_format", ReportType.CSV
+    )
+    created_status, _ = api(
+        "POST",
+        "/entities/measurement_units",
+        {"id": entity_id, "name": "Единица", "coefficient": 1},
+    )
+
+    # Действия
+    status, headers, content = _asgi_response(
+        main.app, "GET", f"/reports/{format_prefix}measurement_unit/{entity_id}"
+    )
+
+    # Проверки
+    assert created_status == 201
+    assert status == 200
+    assert headers[b"content-type"] == b"application/octet-stream"
+    expected_name = f"measurement_unit_{entity_id}.csv"
+    disposition = headers[b"content-disposition"].decode("ascii")
+    if entity_id == "simple":
+        assert disposition == f'attachment; filename="{expected_name}"'
+    else:
+        prefix = "attachment; filename*=UTF-8''"
+        assert disposition.startswith(prefix)
+        assert unquote(disposition.removeprefix(prefix)) == expected_name
+    assert "Единица" in content.decode("utf-8-sig")
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_status"),
+    [("/reports/unknown/code", 404), ("/reports/unknown/measurement_unit/code", 422)],
+)
+def test_entity_api__unknown_report_route_value__status_preserved(
+    api, path, expected_status
+):
+    """Маршруты отчётов сохраняют статусы неизвестного формата и типа сущности."""
+    # Подготовка: маршрут и статус переданы параметризацией.
+
+    # Действия
+    status, _ = api("GET", path)
+
+    # Проверки
+    assert status == expected_status
 
 
 def test_entity_api__active_organization__settings_reference_preserved(api):
