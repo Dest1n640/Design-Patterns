@@ -1,5 +1,3 @@
-from copy import copy, deepcopy
-
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.common import Common
 from Src.Core.exception import ConflictException, ValidationException
@@ -18,11 +16,11 @@ class EntityService:
         """Создаёт модель и вложенные объекты с едиными экземплярами по коду."""
         with self._storage:
             self._validate_model(model)
-            models = {item.id: item for item in self._storage.get_all_models()}
-            if model.id in models:
+            models = {}
+            if self._storage.find_model(model.id) is not None:
                 raise ConflictException("id", "Сущность с таким кодом уже существует")
             created = self._resolve(model, models, {}, set())
-            self._storage.commit(list(models.values()))
+            self._storage.apply_changes(list(models.values()), [])
             return created
 
     def update(
@@ -35,25 +33,17 @@ class EntityService:
                 raise ValidationException(
                     "type", "Тип модели не соответствует коллекции"
                 )
-            current = {item.id: item for item in self._storage.get_all_models()}
-            models = {
-                model_id: item
-                for model_id, item in current.items()
-                if item is not original
-            }
+            models = {}
             if replacement.id != original.id:
-                if replacement.id in models:
+                if self._storage.find_model(replacement.id) is not None:
                     raise ConflictException("id", "Код уже занят другой сущностью")
                 self._ensure_unreferenced(original)
-            updated = self._resolve(replacement, models, {}, set())
-            if updated.id != original.id:
-                del current[original.id]
-            current.update(models)
-            current[updated.id] = original
-            previous = copy(original)
+            updated = self._resolve(replacement, models, {}, set(), original)
+            previous = original.clone()
             original.replace_state(updated)
+            models[original.id] = original
             try:
-                self._storage.commit(list(current.values()))
+                self._storage.apply_changes(list(models.values()), [previous])
             except Exception:
                 original.replace_state(previous)
                 raise
@@ -64,26 +54,27 @@ class EntityService:
         with self._storage:
             model = self._storage.get_entity(entity_type, entity_id)
             self._ensure_unreferenced(model)
-            self._storage.commit(
-                [item for item in self._storage.get_all_models() if item is not model]
-            )
+            self._storage.apply_changes([], [model])
 
     def _resolve(
         self,
         value: object,
         models: dict[str, AbstractModel],
-        memo: dict[int, object],
+        memo: dict[int, AbstractModel],
         visiting: set[int],
+        excluded_model: AbstractModel | None = None,
     ) -> object:
         """Собирает граф с общими экземплярами, сохраняя исходные объекты."""
         if isinstance(value, list):
-            for item in value:
-                self._resolve(item, models, memo, visiting)
-            return value
+            return [
+                self._resolve(item, models, memo, visiting, excluded_model)
+                for item in value
+            ]
         if isinstance(value, dict):
-            for item in value.values():
-                self._resolve(item, models, memo, visiting)
-            return value
+            return {
+                key: self._resolve(item, models, memo, visiting, excluded_model)
+                for key, item in value.items()
+            }
         if not isinstance(value, AbstractModel):
             return value
         self._validate_model(value)
@@ -92,11 +83,18 @@ class EntityService:
         if id(value) in memo:
             return memo[id(value)]
         visiting.add(id(value))
-        fields = Common.get_field_types(type(value))
-        for field in fields:
-            self._resolve(getattr(value, field), models, memo, visiting)
+        fields = {
+            field: self._resolve(
+                getattr(value, field), models, memo, visiting, excluded_model
+            )
+            for field in Common.get_field_types(type(value))
+        }
         visiting.remove(id(value))
         existing = models.get(value.id)
+        if existing is None:
+            existing = self._storage.find_model(value.id)
+            if existing is excluded_model:
+                existing = None
         if existing is not None:
             if type(existing) is not type(value) or any(
                 not self._same_value(getattr(existing, field), getattr(value, field))
@@ -107,9 +105,12 @@ class EntityService:
                 )
             memo[id(value)] = existing
             return existing
-        model = deepcopy(value, memo)
+        model = value.clone()
+        for field, resolved in fields.items():
+            setattr(model, field, resolved)
         model.validate()
         models[model.id] = model
+        memo[id(value)] = model
         return model
 
     @staticmethod
@@ -137,29 +138,7 @@ class EntityService:
 
     def _ensure_unreferenced(self, model: AbstractModel) -> None:
         """Запрещает удаление и смену кода модели при наличии входящих ссылок."""
-        if model.id == self._storage.organization_id:
-            raise ConflictException("id", "Организация используется настройками")
-        owners = self._storage.get_all_models()
-        if self._storage.settings is not None:
-            owners.append(self._storage.settings)
-        for owner in owners:
-            if owner is model:
-                continue
-            if any(
-                self._references(getattr(owner, field), model.id)
-                for field in Common.get_fields(owner)
-            ):
-                raise ConflictException(
-                    "id", f"Сущность используется моделью '{type(owner).__name__}'"
-                )
-
-    @staticmethod
-    def _references(value: object, entity_id: str) -> bool:
-        """Проверяет ссылку на код в свойстве модели или вложенной коллекции."""
-        if isinstance(value, AbstractModel):
-            return value.id == entity_id
-        if isinstance(value, dict):
-            value = list(value.values())
-        if isinstance(value, list):
-            return any(EntityService._references(item, entity_id) for item in value)
-        return False
+        if self._storage.get_reference_count(model.id) > 0:
+            raise ConflictException(
+                "id", "Сущность используется другими моделями или настройками"
+            )

@@ -1,6 +1,7 @@
 """Юнит-тесты для Src.Logics.storage_manager.StorageManager."""
 
 import json
+from unittest.mock import Mock
 
 import pytest
 
@@ -13,6 +14,7 @@ from Src.Models.ingredient_model import IngredientModel
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
 from Src.Models.settings_model import SettingsModel
+from Src.Models.technological_map_model import TechnologicalMapModel
 
 COLLECTIONS = [
     "measurement_units",
@@ -79,6 +81,171 @@ def test_storage_manager__get_entity_types_empty_storage__all_collections():
 
     # Проверки
     assert set(entity_types) == set(ALL_COLLECTIONS)
+
+
+@pytest.mark.parametrize(
+    "order", [("gram", "kilogram", "tonne"), ("tonne", "kilogram", "gram"), ("tonne",)]
+)
+def test_storage_manager__nested_registration__direct_references_counted_once(order):
+    """Порядок корней и повторная регистрация сохраняют точные счётчики связей."""
+    # Подготовка
+    manager = StorageManager()
+    gram = MeasurementUnitModel.create_gram()
+    kilogram = MeasurementUnitModel.create_kilogram(gram)
+    tonne = MeasurementUnitModel.create("тонна", 1000, kilogram)
+    models = {"gram": gram, "kilogram": kilogram, "tonne": tonne}
+
+    # Действия
+    manager.commit([models[name] for name in order])
+    first_counts = {
+        model.id: manager.get_reference_count(model.id) for model in models.values()
+    }
+    manager.commit(manager.get_all_models())
+    repeated_counts = {
+        model.id: manager.get_reference_count(model.id) for model in models.values()
+    }
+
+    # Проверки
+    assert len(manager.get_all_models()) == 3
+    assert manager.get_entity("measurement_units", gram.id) is gram
+    assert manager.get_entity("measurement_units", kilogram.id) is kilogram
+    assert manager.get_entity("measurement_units", tonne.id) is tonne
+    assert first_counts == repeated_counts == {gram.id: 1, kilogram.id: 1, tonne.id: 0}
+
+
+def test_storage_manager__shared_nested_owner__outgoing_reference_counted_once():
+    """Два владельца килограмма дают две ссылки на него и одну ссылку на грамм."""
+    # Подготовка
+    manager = StorageManager()
+    kilogram = MeasurementUnitModel.create_kilogram()
+    gram = kilogram.base_unit
+    first = MeasurementUnitModel.create("Первая", 2, kilogram)
+    second = MeasurementUnitModel.create("Вторая", 3, kilogram)
+
+    # Действия
+    manager.commit([first, second])
+
+    # Проверки
+    assert len(manager.measurement_units) == 4
+    assert manager.get_reference_count(kilogram.id) == 2
+    assert manager.get_reference_count(gram.id) == 1
+    assert manager.get_reference_count(first.id) == 0
+    assert manager.get_reference_count(second.id) == 0
+
+
+@pytest.mark.parametrize("container_type", [list, dict])
+def test_storage_manager__nested_collections__each_reference_counted(
+    link_model_type, container_type
+):
+    """Каждое вхождение модели в списках и словарях учитывается отдельной ссылкой."""
+    # Подготовка
+    manager = StorageManager()
+    gram = MeasurementUnitModel.create_gram()
+    owner = link_model_type.create("Владелец")
+    owner.links = (
+        [gram, gram]
+        if container_type is list
+        else {"first": [gram], "second": {"unit": gram}}
+    )
+
+    # Действия
+    manager.commit([owner])
+
+    # Проверки
+    assert len(manager.get_all_models()) == 2
+    assert manager.get_reference_count(owner.id) == 0
+    assert manager.get_reference_count(gram.id) == 2
+    assert manager.get_entity("measurement_units", gram.id) is gram
+
+
+def test_storage_manager__computed_reference__not_registered(
+    link_model_type, monkeypatch
+):
+    """Вычисляемое свойство без сеттера не добавляет ссылку в индекс."""
+    # Подготовка
+    gram = MeasurementUnitModel.create_gram()
+
+    monkeypatch.setattr(
+        link_model_type,
+        "computed_unit",
+        property(Mock(return_value=gram)),
+        raising=False,
+    )
+    manager = StorageManager()
+    owner = link_model_type.create("Владелец")
+
+    # Действия
+    manager.commit([gram, owner])
+
+    # Проверки
+    assert owner.computed_unit is gram
+    assert manager.get_reference_count(gram.id) == 0
+    assert manager.get_reference_count(owner.id) == 0
+
+
+@pytest.mark.parametrize("entry_point", ["read", "start"])
+def test_storage_manager__nested_snapshot__reference_counts_restored(
+    tmp_path, entry_point
+):
+    """Загрузка вложенного графа восстанавливает счётчики без дублирования корней."""
+    # Подготовка
+    manager = StorageManager()
+    kilogram = MeasurementUnitModel.create_kilogram()
+    gram = kilogram.base_unit
+    file_name = tmp_path / "storage.json"
+    source = {"measurement_units": SerializeFactory().convert([kilogram, gram])}
+    file_name.write_text(json.dumps(source), encoding="utf-8")
+
+    # Действия
+    if entry_point == "read":
+        manager.read(str(file_name))
+    else:
+        manager.start(SettingsModel(), str(file_name))
+    manager.save(str(file_name))
+    manager.read(str(file_name))
+    loaded_kilogram = manager.get_entity("measurement_units", kilogram.id)
+    loaded_gram = manager.get_entity("measurement_units", gram.id)
+
+    # Проверки
+    assert loaded_kilogram.base_unit is loaded_gram
+    assert manager.get_reference_count(gram.id) == 1
+    assert manager.get_reference_count(kilogram.id) == 0
+
+
+def test_storage_manager__unknown_reference_count__not_found():
+    """Запрос счётчика неизвестной модели сообщает об отсутствии сущности."""
+    # Подготовка
+    manager = StorageManager()
+
+    # Действия
+    with pytest.raises(NotFoundException):
+        manager.get_reference_count("missing")
+
+    # Проверки
+    assert manager.get_all_models() == []
+
+
+@pytest.mark.parametrize("invalid_graph", ["different_instance", "cycle"])
+def test_storage_manager__invalid_nested_registration__indexes_kept(invalid_graph):
+    """Конфликт вложенных экземпляров или цикл сохраняет прежние индексы."""
+    # Подготовка
+    manager = StorageManager()
+    gram = MeasurementUnitModel.create_gram()
+    kilogram = MeasurementUnitModel.create_kilogram(gram)
+    manager.commit([kilogram])
+    candidate = MeasurementUnitModel.create("Новая", 1, gram.clone())
+    if invalid_graph == "cycle":
+        candidate.base_unit = candidate
+
+    # Действия
+    with pytest.raises(ValidationException):
+        manager.commit([gram, candidate])
+
+    # Проверки
+    assert len(manager.measurement_units) == 2
+    assert manager.get_entity("measurement_units", kilogram.id) is kilogram
+    assert manager.get_reference_count(gram.id) == 1
+    assert manager.get_reference_count(kilogram.id) == 0
 
 
 @pytest.mark.parametrize("invalid_batch", ["duplicate_id", "unsupported_model"])
@@ -299,10 +466,120 @@ def test_storage_manager__first_start__nested_models_have_collections():
     }
 
     # Проверки
+    assert manager.get_reference_count(settings_manager.settings.organization.id) == 1
     for collection, expected in sources.items():
         assert _same_objects(manager.get_entities(collection), expected)
         for entity in expected:
             assert manager.get_entity(collection, entity.id) is entity
+
+
+def test_storage_manager__first_start_nested_dish__all_descendants_registered(
+    monkeypatch, groups, units
+):
+    """Начальные данные регистрируют блюдо и ингредиенты на любой глубине вложения."""
+    # Подготовка
+    manager = StorageManager()
+    model = TechnologicalMapModel.create_technological_map(groups, units)
+    model.dishes = [model.dishes[1]]
+    monkeypatch.setattr(
+        StorageManager, "_create_default_data", Mock(return_value=[model])
+    )
+
+    # Действия
+    manager.start(_build_settings())
+    pizza = manager.technological_maps[0].dishes[0]
+    dough = pizza.ingredients[0]
+
+    # Проверки
+    assert len(manager.get_entities("dishes")) == 2
+    assert len(manager.get_entities("ingredients")) == 9
+    assert manager.get_entity("dishes", dough.id) is dough
+    assert manager.get_reference_count(pizza.id) == 1
+    assert manager.get_reference_count(dough.id) == 1
+    for ingredient in dough.ingredients:
+        assert manager.get_entity("ingredients", ingredient.id) is ingredient
+        assert manager.get_reference_count(ingredient.id) == 1
+
+
+def test_storage_manager__settings_attached_after_read__organization_counted_once(
+    tmp_path,
+):
+    """Подключение настроек после чтения учитывает организацию ровно один раз."""
+    # Подготовка
+    settings_manager = SettingsManager()
+    settings_manager.read()
+    settings = settings_manager.settings
+    manager = StorageManager()
+    file_name = tmp_path / "storage.json"
+    file_name.write_text('{"organizations": []}', encoding="utf-8")
+    manager.read(str(file_name))
+
+    # Действия
+    manager.start(settings)
+    manager.start(settings)
+
+    # Проверки
+    assert manager.settings is settings
+    assert manager.get_all_models() == [settings.organization]
+    assert manager.get_reference_count(settings.organization.id) == 1
+
+
+def test_storage_manager__settings_id_conflict__previous_indexes_kept(tmp_path):
+    """Конфликт кода организации настроек с другой моделью сохраняет индексы."""
+    # Подготовка
+    settings_manager = SettingsManager()
+    settings_manager.read()
+    settings = settings_manager.settings
+    settings.first_start = False
+    organization = settings.organization
+    manager = StorageManager()
+    manager.start(settings)
+    data = {
+        "measurement_units": [
+            {
+                "type": "MeasurementUnitModel",
+                "id": organization.id,
+                "name": "грамм",
+                "coefficient": 1,
+            }
+        ]
+    }
+    file_name = tmp_path / "conflicting.json"
+    file_name.write_text(json.dumps(data), encoding="utf-8")
+
+    # Действия
+    with pytest.raises(ValidationException):
+        manager.read(str(file_name))
+
+    # Проверки
+    assert manager.get_all_models() == [organization]
+    assert manager.get_entity("organizations", organization.id) is organization
+    assert manager.get_reference_count(organization.id) == 1
+    assert settings.organization is organization
+
+
+def test_storage_manager__saved_organization_id__reference_without_settings_counted(
+    tmp_path, settings_data
+):
+    """Сохранённый выбор организации учитывается до подключения модели настроек."""
+    # Подготовка
+    manager = StorageManager()
+    organization = settings_data["organization"] | {"id": "saved-organization"}
+    data = {
+        "organizations": [organization],
+        "organization_id": organization["id"],
+    }
+    file_name = tmp_path / "storage.json"
+    file_name.write_text(json.dumps(data), encoding="utf-8")
+
+    # Действия
+    manager.read(str(file_name))
+    manager.save(str(file_name))
+    manager.read(str(file_name))
+
+    # Проверки
+    assert manager.settings is None
+    assert manager.get_reference_count(organization["id"]) == 1
 
 
 def test_storage_manager__two_instances__same_object():

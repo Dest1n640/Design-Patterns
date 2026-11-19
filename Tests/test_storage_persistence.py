@@ -1,12 +1,17 @@
 """Интеграционные тесты автосохранения и восстановления JSON-хранилища."""
 
 import json
-from copy import copy
 from functools import partial
+from unittest.mock import Mock
 
 import pytest
 
-from Src.Core.exception import ApplicationException, PersistenceException
+from Src.Core.exception import (
+    ApplicationException,
+    ConflictException,
+    NotFoundException,
+    PersistenceException,
+)
 from Src.Logics.entity_service import EntityService
 from Src.Logics.settings_manager import SettingsManager
 from Src.Logics.storage_manager import StorageManager
@@ -72,7 +77,7 @@ def test_storage_persistence__replace_failure__file_and_graph_kept(
     gram = service.create(MeasurementUnitModel.create_gram())
     kilogram = service.create(MeasurementUnitModel.create_kilogram(gram))
     group = service.create(NomenclatureGroupModel.create("Группа"))
-    replacement = copy(gram)
+    replacement = gram.clone()
     replacement.name = "Новое имя"
     original_file = file_name.read_bytes()
     operations = {
@@ -97,6 +102,9 @@ def test_storage_persistence__replace_failure__file_and_graph_kept(
     assert manager.get_entity("measurement_units", gram.id) is gram
     assert gram.name == "грамм"
     assert kilogram.base_unit is gram
+    assert manager.get_reference_count(gram.id) == 1
+    assert manager.get_reference_count(kilogram.id) == 0
+    assert manager.get_reference_count(group.id) == 0
     assert sorted(path.name for path in file_name.parent.iterdir()) == ["storage.json"]
 
 
@@ -125,6 +133,115 @@ def test_storage_persistence__partial_write_failure__old_file_kept(
     assert sorted(path.name for path in file_name.parent.iterdir()) == ["storage.json"]
 
 
+def test_storage_persistence__failed_link_change__reference_counts_kept(
+    persistent_storage, monkeypatch
+):
+    """Ошибка записи новой связи сохраняет прежние счётчики и экземпляры."""
+    # Подготовка
+    manager, file_name = persistent_storage
+    service = EntityService(manager)
+    kilogram = service.create(MeasurementUnitModel.create_kilogram())
+    gram = kilogram.base_unit
+    replacement = kilogram.clone()
+    new_gram = MeasurementUnitModel.create_gram()
+    replacement.base_unit = new_gram
+    original_file = file_name.read_bytes()
+
+    monkeypatch.setattr(
+        "Src.Logics.storage_manager.os.replace",
+        Mock(side_effect=OSError("Запись недоступна")),
+    )
+
+    # Действия
+    with pytest.raises(PersistenceException):
+        service.update("measurement_units", kilogram.id, replacement)
+    with pytest.raises(NotFoundException):
+        manager.get_reference_count(new_gram.id)
+
+    # Проверки
+    assert file_name.read_bytes() == original_file
+    assert kilogram.base_unit is gram
+    assert manager.get_reference_count(gram.id) == 1
+    assert manager.get_reference_count(kilogram.id) == 0
+    assert len(manager.measurement_units) == 2
+
+
+def test_storage_persistence__failed_rename__state_order_and_counts_kept(
+    persistent_storage, monkeypatch
+):
+    """Ошибка смены кода сохраняет порядок моделей, общие ссылки и прежние счётчики."""
+    # Подготовка
+    manager, file_name = persistent_storage
+    service = EntityService(manager)
+    kilogram = service.create(MeasurementUnitModel.create_kilogram())
+    gram = kilogram.base_unit
+    service.create(MeasurementUnitModel.create_gram())
+    previous_ids = [model.id for model in manager.measurement_units]
+    old_id = kilogram.id
+    replacement = kilogram.clone()
+    replacement.id = "renamed"
+    replacement.base_unit = MeasurementUnitModel.create_gram()
+    new_gram_id = replacement.base_unit.id
+    previous_file = file_name.read_bytes()
+
+    # Действия
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            "Src.Logics.storage_manager.os.replace",
+            Mock(side_effect=OSError("Запись недоступна")),
+        )
+        with pytest.raises(PersistenceException):
+            service.update("measurement_units", old_id, replacement)
+    with pytest.raises(NotFoundException):
+        manager.get_reference_count(new_gram_id)
+
+    # Проверки
+    assert file_name.read_bytes() == previous_file
+    assert [model.id for model in manager.measurement_units] == previous_ids
+    assert manager.get_entity("measurement_units", old_id) is kilogram
+    assert manager.find_model("renamed") is None
+    assert kilogram.base_unit is gram
+    assert manager.get_reference_count(gram.id) == 1
+    assert manager.get_reference_count(old_id) == 0
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["duplicate_id", "missing_reference", "referenced_delete", "duplicate_delete"],
+)
+def test_storage_persistence__invalid_incremental_change__file_and_index_kept(
+    persistent_storage, case
+):
+    """Некорректное изменение отклоняется до сохранения файла и индексов."""
+    # Подготовка
+    manager, file_name = persistent_storage
+    kilogram = EntityService(manager).create(MeasurementUnitModel.create_kilogram())
+    gram = kilogram.base_unit
+    previous_file = file_name.read_bytes()
+    added = []
+    removed = []
+    if case == "duplicate_id":
+        added = [gram.clone()]
+    elif case == "missing_reference":
+        added = [MeasurementUnitModel.create_kilogram()]
+    elif case == "duplicate_delete":
+        removed = [kilogram, kilogram]
+    else:
+        removed = [gram]
+
+    # Действия
+    with pytest.raises(ConflictException):
+        manager.apply_changes(added, removed)
+
+    # Проверки
+    assert file_name.read_bytes() == previous_file
+    assert len(manager.measurement_units) == 2
+    assert manager.get_entity("measurement_units", gram.id) is gram
+    assert manager.get_entity("measurement_units", kilogram.id) is kilogram
+    assert manager.get_reference_count(gram.id) == 1
+    assert manager.get_reference_count(kilogram.id) == 0
+
+
 @pytest.mark.parametrize("legacy", [False, True])
 def test_storage_persistence__organization_restart__settings_use_saved_model(
     tmp_path, legacy
@@ -137,12 +254,12 @@ def test_storage_persistence__organization_restart__settings_use_saved_model(
     file_name = tmp_path / "storage.json"
     manager.start(settings.settings, str(file_name))
     organization = settings.settings.organization
-    extra = copy(organization)
+    extra = organization.clone()
     extra.id = "other-organization"
     extra.name = "Другая организация"
     service = EntityService(manager)
     service.create(extra)
-    replacement = copy(organization)
+    replacement = organization.clone()
     replacement.name = "Сохранённая"
     service.update("organizations", organization.id, replacement)
     data = json.loads(file_name.read_text(encoding="utf-8"))
@@ -160,6 +277,7 @@ def test_storage_persistence__organization_restart__settings_use_saved_model(
     assert restored.settings.organization is restored_organization
     assert restored_organization.name == "Сохранённая"
     assert restored_organization.id == organization.id
+    assert restored.get_reference_count(organization.id) == 1
 
 
 @pytest.mark.parametrize(
@@ -248,7 +366,7 @@ def test_storage_persistence__renamed_model_reuses_old_id__nested_model_restored
     service = EntityService(manager)
     gram = service.create(MeasurementUnitModel.create_gram())
     old_id = gram.id
-    replacement = MeasurementUnitModel.create_kilogram(copy(gram))
+    replacement = MeasurementUnitModel.create_kilogram(gram.clone())
     replacement.id = "kilogram"
 
     # Действия
@@ -263,11 +381,15 @@ def test_storage_persistence__renamed_model_reuses_old_id__nested_model_restored
     assert updated.base_unit is nested_before_restart
     assert nested_before_restart is not gram
     assert restored_kilogram.base_unit is nested_after_restart
+    assert manager.get_reference_count(old_id) == 1
+    assert manager.get_reference_count("kilogram") == 0
+    assert restored.get_reference_count(old_id) == 1
+    assert restored.get_reference_count("kilogram") == 0
     assert len(restored.measurement_units) == len(manager.measurement_units) == 2
 
 
 def test_storage_persistence__migration_save_failure__startup_can_retry(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, settings_data
 ):
     """Ошибка записи после чтения старого файла сохраняет возможность перезапуска."""
     # Подготовка
@@ -275,11 +397,16 @@ def test_storage_persistence__migration_save_failure__startup_can_retry(
     legacy = {
         "nomenclature_groups": [
             {"type": "NomenclatureGroupModel", "id": "saved", "name": "Группа"}
-        ]
+        ],
+        "organizations": [
+            settings_data["organization"]
+            | {"id": "saved-organization", "name": "Сохранённая"}
+        ],
     }
     file_name.write_text(json.dumps(legacy), encoding="utf-8")
     settings = SettingsManager()
     settings.read()
+    original_organization = settings.settings.organization
     manager = StorageManager()
 
     def fail_replace(source, target) -> None:
@@ -293,11 +420,16 @@ def test_storage_persistence__migration_save_failure__startup_can_retry(
             manager.start(settings.settings, str(file_name))
     loaded_after_failure = manager.is_loaded
     file_after_failure = json.loads(file_name.read_text(encoding="utf-8"))
+    organization_after_failure = settings.settings.organization
+    models_after_failure = manager.get_all_models()
     manager.start(settings.settings, str(file_name))
 
     # Проверки
     assert not loaded_after_failure
+    assert organization_after_failure is original_organization
+    assert models_after_failure == []
     assert file_after_failure == legacy
     assert manager.is_loaded
     assert manager.get_entity("nomenclature_groups", "saved").name == "Группа"
     assert manager.settings.organization is manager.get_entities("organizations")[0]
+    assert manager.get_reference_count("saved-organization") == 1
