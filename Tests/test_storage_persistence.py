@@ -11,6 +11,7 @@ from Src.Core.exception import (
     ConflictException,
     NotFoundException,
     PersistenceException,
+    ValidationException,
 )
 from Src.Logics.entity_service import EntityService
 from Src.Logics.settings_manager import SettingsManager
@@ -64,6 +65,25 @@ def test_storage_persistence__crud_and_restarts__changes_restored(persistent_sto
     assert (
         json.loads(file_name.read_text(encoding="utf-8"))["nomenclature_groups"] == []
     )
+
+
+def test_storage_persistence__unknown_collection__original_file_kept(tmp_path):
+    """Запуск отклоняет неизвестную коллекцию до перезаписи файла."""
+    # Подготовка
+    settings = SettingsManager()
+    settings.read()
+    file_name = tmp_path / "storage.json"
+    original_file = b'{"measurement_units": [], "future_collection": [{"id": "a"}]}'
+    file_name.write_bytes(original_file)
+    manager = StorageManager()
+
+    # Действия
+    with pytest.raises(ValidationException, match="future_collection"):
+        manager.start(settings.settings, str(file_name))
+
+    # Проверки
+    assert file_name.read_bytes() == original_file
+    assert not manager.is_loaded
 
 
 @pytest.mark.parametrize("operation", ["create", "update", "delete"])

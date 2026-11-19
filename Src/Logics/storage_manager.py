@@ -1,8 +1,10 @@
 import json
 import os
+from contextlib import suppress
 from pathlib import Path
 from threading import RLock
 from typing import Self
+from uuid import uuid4
 
 from Src.Core.abstract_manager import AbstractManager
 from Src.Core.abstract_model import AbstractModel
@@ -280,17 +282,22 @@ class StorageManager(AbstractManager):
         data = Validation.validate_instance(
             self._data, dict, "storage", "Хранилище должно быть JSON-объектом"
         )
-        if not any(entity_type.name.lower() in data for entity_type in EntityType):
+        collection_names = self.get_entity_types()
+        unknown_keys = data.keys() - set(collection_names) - {"organization_id"}
+        if unknown_keys:
+            names = ", ".join(sorted(unknown_keys))
+            raise ValidationException("storage", f"Неизвестные ключи: {names}")
+        if not any(name in data for name in collection_names):
             raise ValidationException("storage", "Отсутствуют коллекции хранилища")
         factory = DeserializeFactory()
         sources = {
-            entity_type.name.lower(): Validation.validate_instance(
-                data.get(entity_type.name.lower(), []),
+            name: Validation.validate_instance(
+                data.get(name, []),
                 list,
-                entity_type.name.lower(),
+                name,
                 "Коллекция должна быть списком",
             )
-            for entity_type in EntityType
+            for name in collection_names
         }
         restored = factory.convert(sources)
         roots = []
@@ -366,20 +373,23 @@ class StorageManager(AbstractManager):
         if self._organization_id is not None:
             data["organization_id"] = self._organization_id
         target = Path(file_name)
-        temporary = target.with_name(f".{target.name}.tmp")
+        temporary = target.with_name(f".{target.name}.{uuid4()}.tmp")
+        created = False
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
-            with temporary.open("w", encoding="utf-8") as file:
+            with temporary.open("x", encoding="utf-8") as file:
+                created = True
                 json.dump(data, file, ensure_ascii=False, indent=2)
                 file.flush()
                 os.fsync(file.fileno())
             os.replace(temporary, target)
         except (OSError, ValueError, TypeError) as ex:
+            if created:
+                with suppress(OSError):
+                    temporary.unlink(missing_ok=True)
             raise PersistenceException(
                 f"Не удалось записать файл '{file_name}'"
             ) from ex
-        finally:
-            temporary.unlink(missing_ok=True)
 
     @staticmethod
     def _by_name[T: NamedModel](models: list[T]) -> dict[str, T]:

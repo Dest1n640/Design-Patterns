@@ -784,7 +784,10 @@ def test_entity_api__autosave_restart__created_entity_available(
     assert loaded == created
 
 
-def test_entity_api__save_failure__service_error_and_retry(api, tmp_path, monkeypatch):
+@pytest.mark.parametrize("stage", ["replace", "open", "cleanup"])
+def test_entity_api__save_failure__service_error_and_retry(
+    api, tmp_path, monkeypatch, stage
+):
     """Ошибка сохранения возвращает HTTP 503, после восстановления запись доступна."""
     # Подготовка
     file_name = tmp_path / "storage.json"
@@ -792,18 +795,23 @@ def test_entity_api__save_failure__service_error_and_retry(api, tmp_path, monkey
     storage.start(SettingsModel(), str(file_name))
     original_file = file_name.read_bytes()
 
-    def fail_replace(source, target) -> None:
-        """Имитирует отказ атомарной замены файла хранилища."""
-        raise OSError("Запись недоступна")
-
     # Действия
     with monkeypatch.context() as patch:
-        patch.setattr("Src.Logics.storage_manager.os.replace", fail_replace)
+        operation = "Path.open" if stage == "open" else "os.replace"
+        patch.setattr(
+            f"Src.Logics.storage_manager.{operation}",
+            Mock(side_effect=PermissionError("Запись недоступна")),
+        )
+        if stage == "cleanup":
+            patch.setattr(
+                "Src.Logics.storage_manager.Path.unlink",
+                Mock(side_effect=PermissionError("Очистка недоступна")),
+            )
         failed_status, error = api(
             "POST", "/entities/nomenclature_groups", {"name": "Ошибка"}
         )
-        failed_file = file_name.read_bytes()
-        failed_models = storage.nomenclature_groups
+    failed_file = file_name.read_bytes()
+    failed_models = storage.nomenclature_groups
     retry_status, created = api(
         "POST", "/entities/nomenclature_groups", {"name": "Сохранённая"}
     )
