@@ -10,8 +10,15 @@ from Src.Models.nomenclature_model import NomenclatureModel
 class IngredientModel(NomenclatureModel):
     """Класс ингредиента — номенклатура с весом брутто и нетто."""
 
-    def __init__(
-        self,
+    def __init__(self) -> None:
+        """Инициализирует ингредиент без заполненных обязательных полей."""
+        super().__init__()
+        self.__brutto: int | float | None = None
+        self.__netto: int | float | None = None
+
+    @classmethod
+    def create(
+        cls,
         name: str,
         full_name: str,
         group: NomenclatureGroupModel,
@@ -19,11 +26,18 @@ class IngredientModel(NomenclatureModel):
         position_type: PositionType,
         brutto: int | float,
         netto: int | float,
-    ):
-        """Конструктор ингредиента."""
-        super().__init__(name, full_name, group, measurement_unit, position_type)
-        self.brutto = brutto
-        self.netto = netto
+    ) -> Self:
+        """Создаёт ингредиент с проверенными реквизитами и весом."""
+        model = cls()
+        model.name = name
+        model.full_name = full_name
+        model.group = group
+        model.measurement_unit = measurement_unit
+        model.position_type = position_type
+        model.brutto = brutto
+        model.netto = netto
+        model.validate()
+        return model
 
     @property
     def brutto(self) -> int | float:
@@ -61,7 +75,7 @@ class IngredientModel(NomenclatureModel):
 
         return {
             "Тесто для пиццы": [
-                cls(
+                cls.create(
                     "Мука пшеничная",
                     "Мука пшеничная высшего сорта",
                     pantry,
@@ -70,7 +84,7 @@ class IngredientModel(NomenclatureModel):
                     150,
                     150,
                 ),
-                cls(
+                cls.create(
                     "Масло оливковое",
                     "Масло оливковое Extra Virgin",
                     pantry,
@@ -79,8 +93,8 @@ class IngredientModel(NomenclatureModel):
                     5,
                     5,
                 ),
-                cls("Соль", "Соль поваренная пищевая", pantry, gram, raw, 3, 3),
-                cls(
+                cls.create("Соль", "Соль поваренная пищевая", pantry, gram, raw, 3, 3),
+                cls.create(
                     "Дрожжи сухие",
                     "Дрожжи хлебопекарные сухие",
                     pantry,
@@ -91,8 +105,8 @@ class IngredientModel(NomenclatureModel):
                 ),
             ],
             "Пицца Маргарита": [
-                cls("Томаты", "Томаты свежие", vegetables, gram, raw, 150, 150),
-                cls(
+                cls.create("Томаты", "Томаты свежие", vegetables, gram, raw, 150, 150),
+                cls.create(
                     "Сыр Моцарелла",
                     "Сыр Моцарелла для пиццы 45%",
                     dairy,
@@ -101,7 +115,7 @@ class IngredientModel(NomenclatureModel):
                     125,
                     125,
                 ),
-                cls(
+                cls.create(
                     "Масло оливковое",
                     "Масло оливковое Extra Virgin",
                     pantry,
@@ -110,7 +124,9 @@ class IngredientModel(NomenclatureModel):
                     10,
                     10,
                 ),
-                cls("Базилик", "Базилик зелёный свежий", vegetables, gram, raw, 5, 5),
-                cls("Соль", "Соль поваренная пищевая", pantry, gram, raw, 1, 1),
+                cls.create(
+                    "Базилик", "Базилик зелёный свежий", vegetables, gram, raw, 5, 5
+                ),
+                cls.create("Соль", "Соль поваренная пищевая", pantry, gram, raw, 1, 1),
             ],
         }

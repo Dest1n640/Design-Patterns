@@ -1,3 +1,5 @@
+from typing import Self
+
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 
@@ -5,15 +7,27 @@ from Src.Core.validation import Validation
 class OrganizationModel(NamedModel):
     """Класс сущности - организация."""
 
-    def __init__(
-        self, name: str, inn: str, bic: str, curr_account: str, legal_form: str
-    ):
-        """Конструктор организации с именем и реквизитами."""
-        super().__init__(name)
-        self.inn = inn
-        self.bic = bic
-        self.curr_account = curr_account
-        self.legal_form = legal_form
+    def __init__(self) -> None:
+        """Инициализирует организацию без заполненных реквизитов."""
+        super().__init__()
+        self.__inn = ""
+        self.__bic = ""
+        self.__curr_account = ""
+        self.__legal_form = ""
+
+    @classmethod
+    def create(
+        cls, name: str, inn: str, bic: str, curr_account: str, legal_form: str
+    ) -> Self:
+        """Создаёт организацию с проверенным именем и реквизитами."""
+        model = cls()
+        model.name = name
+        model.inn = inn
+        model.bic = bic
+        model.curr_account = curr_account
+        model.legal_form = legal_form
+        model.validate()
+        return model
 
     @property
     def inn(self) -> str:

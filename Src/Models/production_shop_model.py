@@ -9,4 +9,4 @@ class ProductionShopModel(NamedModel):
     @classmethod
     def create_default_production_shops(cls) -> list[Self]:
         """Фабричный метод: создаёт производственный цех."""
-        return [cls("Производственный цех")]
+        return [cls.create("Производственный цех")]

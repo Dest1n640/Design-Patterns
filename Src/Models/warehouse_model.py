@@ -10,16 +10,26 @@ from Src.Models.restaurant_model import RestaurantModel
 class WarehouseModel(NamedModel):
     """Класс склада — места хранения остатков номенклатуры."""
 
-    def __init__(
-        self,
+    def __init__(self) -> None:
+        """Инициализирует склад без заполненных обязательных полей."""
+        super().__init__()
+        self.__premises: PremisesModel | None = None
+        self.__warehouse_owner: RestaurantModel | ProductionShopModel | None = None
+
+    @classmethod
+    def create(
+        cls,
         name: str,
         premises: PremisesModel,
         warehouse_owner: RestaurantModel | ProductionShopModel,
-    ):
-        """Конструктор склада."""
-        super().__init__(name)
-        self.premises = premises
-        self.warehouse_owner = warehouse_owner
+    ) -> Self:
+        """Создаёт склад с проверенными помещением и владельцем."""
+        model = cls()
+        model.name = name
+        model.premises = premises
+        model.warehouse_owner = warehouse_owner
+        model.validate()
+        return model
 
     @property
     def premises(self):
@@ -58,23 +68,25 @@ class WarehouseModel(NamedModel):
     ) -> list[Self]:
         """Фабричный метод: создаёт центральный склад цеха и склады ресторанов."""
         return [
-            cls(
+            cls.create(
                 "Центральный склад цеха",
-                PremisesModel(
+                PremisesModel.create(
                     "Холодильный комплекс цеха", "ул. Промышленная, 1", 420.0
                 ),
                 production_shops["Производственный цех"],
             ),
-            cls(
+            cls.create(
                 "Склад ресторана Ромашка Центральный",
-                PremisesModel(
+                PremisesModel.create(
                     "Складское помещение Центральный", "ул. Ленина, 12", 120.0
                 ),
                 restaurants["Ромашка Центральный"],
             ),
-            cls(
+            cls.create(
                 "Склад ресторана Ромашка Северный",
-                PremisesModel("Складское помещение Северный", "пр. Мира, 45", 60.5),
+                PremisesModel.create(
+                    "Складское помещение Северный", "пр. Мира, 45", 60.5
+                ),
                 restaurants["Ромашка Северный"],
             ),
         ]

@@ -10,4 +10,4 @@ class NomenclatureGroupModel(NamedModel):
     def create_default_groups(cls) -> list[Self]:
         """Фабричный метод: создаёт группы номенклатуры."""
         names = ["Бакалея", "Молочные продукты", "Овощи", "Полуфабрикаты", "Блюда"]
-        return [cls(name) for name in names]
+        return [cls.create(name) for name in names]

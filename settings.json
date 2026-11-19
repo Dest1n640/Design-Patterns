@@ -1,14 +1,16 @@
 {
+  "type": "SettingsModel",
   "first_start": true,
   "response_format": "txt",
-  "company": {
+  "boss_name": "Иванов Иван Иванович",
+  "accountant_name": "Петрова Мария Сергеевна",
+  "organization": {
+    "type": "OrganizationModel",
     "name": "Ромашка",
     "legal_form": "ООО",
     "inn": "7701234567",
     "bic": "044525225",
     "curr_account": "40702810000000000001",
-    "boss_name": "Иванов Иван Иванович",
-    "accountant_name": "Петрова Мария Сергеевна",
     "restaurants_count": 10
   },
   "restaurants": [

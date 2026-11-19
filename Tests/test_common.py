@@ -1,19 +1,14 @@
 """Юнит-тесты для Src.Core.common.Common."""
 
-import inspect
+from typing import Self
 
 import pytest
 
 from Src.Core.common import Common
 from Src.Core.exception import ValidationException
-from Src.Logics.storage_manager import StorageManager
 from Src.Models.measurement_unit_model import MeasurementUnitModel
 from Src.Models.nomenclature_group_model import NomenclatureGroupModel
-from Src.Models.nomenclature_model import NomenclatureModel
-from Src.Models.production_shop_model import ProductionShopModel
-from Src.Models.restaurant_model import RestaurantModel
 from Src.Models.technological_map_model import TechnologicalMapModel
-from Src.Models.warehouse_model import WarehouseModel
 
 
 def test_common__get_fields__public_properties_only(units):
@@ -61,79 +56,57 @@ def test_common__get_fields_none__raises():
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_common__get_collection_types__empty_storage__model_types():
-    """Типы всех коллекций определяются до заполнения хранилища."""
-    # Подготовка
-    manager = StorageManager()
-
-    # Действия
-    collection_types = Common.get_collection_types(manager)
-
-    # Проверки
-    assert collection_types == {
-        "measurement_units": MeasurementUnitModel,
-        "nomenclature_groups": NomenclatureGroupModel,
-        "nomenclature": NomenclatureModel,
-        "restaurants": RestaurantModel,
-        "production_shops": ProductionShopModel,
-        "warehouses": WarehouseModel,
-        "technological_maps": TechnologicalMapModel,
-    }
-
-
-def test_common__get_constructor_parameters__model__constructor_parameters():
-    """Возвращаются параметры конструктора с аннотациями и значениями по умолчанию."""
+def test_common_get_field_types__model__setter_annotations_returned():
+    """Типы полей определяются сеттерами без анализа конструктора."""
     # Подготовка
     model_class = MeasurementUnitModel
 
     # Действия
-    parameters = Common.get_constructor_parameters(model_class)
+    fields = Common.get_field_types(model_class)
 
     # Проверки
-    assert list(parameters) == ["name", "coefficient", "base_unit"]
-    assert parameters["name"].annotation is str
-    assert parameters["name"].default is inspect.Parameter.empty
-    assert parameters["coefficient"].annotation == int | float
-    assert parameters["coefficient"].default is inspect.Parameter.empty
-    assert parameters["base_unit"].default is None
+    assert fields == {
+        "base_unit": Self | None,
+        "coefficient": int | float,
+        "id": str,
+        "name": str,
+    }
 
 
-def test_common__get_constructor_parameters__inherited_constructor__parameters():
-    """Для модели без своего конструктора возвращаются унаследованные параметры."""
+def test_common_get_field_types__inherited_properties__annotations_returned():
+    """Для модели без собственных свойств возвращаются унаследованные сеттеры."""
     # Подготовка
     model_class = NomenclatureGroupModel
 
     # Действия
-    parameters = Common.get_constructor_parameters(model_class)
+    fields = Common.get_field_types(model_class)
 
     # Проверки
-    assert list(parameters) == ["name"]
-    assert parameters["name"].annotation is str
-    assert parameters["name"].default is inspect.Parameter.empty
+    assert fields == {"id": str, "name": str}
 
 
-@pytest.mark.parametrize("source", [None, 42, "model", str, object])
-def test_common__get_constructor_parameters__invalid_source__raises(source):
+@pytest.mark.parametrize("source", [None, 42, "model"])
+def test_common_get_field_types__invalid_source__raises(source):
     """Неверный аргумент вызывает исключение валидации вместо TypeError."""
     # Подготовка
     # Аргумент предоставлен параметризацией.
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        Common.get_constructor_parameters(source)
+        Common.get_field_types(source)
 
     # Проверки
     assert exc_info.value.field == "source"
 
 
-def test_common__get_constructor_parameters__model_instance__raises(units):
+def test_common_get_field_types__model_instance__raises(units):
     """Экземпляр модели вместо класса вызывает исключение валидации."""
     # Подготовка
     source = units["грамм"]
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        Common.get_constructor_parameters(source)
+        Common.get_field_types(source)
 
     # Проверки
     assert exc_info.value.field == "source"

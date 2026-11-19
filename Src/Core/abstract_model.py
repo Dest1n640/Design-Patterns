@@ -2,6 +2,8 @@ from abc import ABC
 from typing import Self
 from uuid import uuid4
 
+from Src.Core.common import Common
+from Src.Core.exception import ValidationException
 from Src.Core.validation import Validation
 
 
@@ -26,3 +28,20 @@ class AbstractModel(ABC):  # noqa: B024
     def __eq__(self, other: Self):
         """Сравнивает сущности по id."""
         return self.id == other.id
+
+    def replace_state(self, source: Self) -> None:
+        """Принимает проверенное состояние модели того же класса, сохраняя ссылки."""
+        if type(source) is not type(self):
+            raise ValidationException("source", "Типы моделей должны совпадать")
+        self.__dict__ = source.__dict__.copy()
+
+    def clone(self) -> Self:
+        """Копирует модель, сохраняя её код и ссылки на вложенные объекты."""
+        model = type(self)()
+        model.replace_state(self)
+        return model
+
+    def validate(self) -> None:
+        """Проверяет заполненность и значения всех свойств через их сеттеры."""
+        for field in Common.get_field_types(type(self)):
+            setattr(self, field, getattr(self, field))

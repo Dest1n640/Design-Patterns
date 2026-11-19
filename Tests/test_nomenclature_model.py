@@ -11,12 +11,14 @@ from Src.Models.nomenclature_model import NomenclatureModel
 
 def _build_nomenclature(name="Мука", full_name="Мука пшеничная высший сорт"):
     """Строит номенклатуру с валидными зависимостями и переданными name/full_name."""
-    group = NomenclatureGroupModel("Бакалея")
-    unit = MeasurementUnitModel("кг", 1)
-    return NomenclatureModel(name, full_name, group, unit, PositionType.RAW_MATERIAL)
+    group = NomenclatureGroupModel.create("Бакалея")
+    unit = MeasurementUnitModel.create("кг", 1)
+    return NomenclatureModel.create(
+        name, full_name, group, unit, PositionType.RAW_MATERIAL
+    )
 
 
-def test_nomenclature_model__constructor__name_of_50_chars_is_accepted():
+def test_nomenclature_model__create__name_of_50_chars_is_accepted():
     """Имя длиной ровно 50 символов допустимо."""
     # Подготовка
     name = "Н" * 50
@@ -28,7 +30,7 @@ def test_nomenclature_model__constructor__name_of_50_chars_is_accepted():
     assert nomenclature.name == name
 
 
-def test_nomenclature_model__constructor__name_longer_than_50_raises():
+def test_nomenclature_model__create__name_longer_than_50_raises():
     """Имя длиннее 50 символов вызывает исключение валидации."""
     # Подготовка
     name = "Н" * 51
@@ -41,7 +43,7 @@ def test_nomenclature_model__constructor__name_longer_than_50_raises():
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_nomenclature_model__constructor__full_name_of_255_chars_is_accepted():
+def test_nomenclature_model__create__full_name_of_255_chars_is_accepted():
     """Полное наименование длиной ровно 255 символов допустимо."""
     # Подготовка
     full_name = "Н" * 255
@@ -53,7 +55,7 @@ def test_nomenclature_model__constructor__full_name_of_255_chars_is_accepted():
     assert nomenclature.full_name == full_name
 
 
-def test_nomenclature_model__constructor__full_name_longer_than_255_raises():
+def test_nomenclature_model__create__full_name_longer_than_255_raises():
     """Полное наименование длиннее 255 символов вызывает исключение валидации."""
     # Подготовка
     full_name = "Н" * 256
@@ -77,7 +79,7 @@ def test_nomenclature_model__create_margherita__refers_to_passed_dictionaries():
         "штука": MeasurementUnitModel.create_piece(),
     }
     names = ["Бакалея", "Молочные продукты", "Овощи", "Полуфабрикаты", "Блюда"]
-    groups = {name: NomenclatureGroupModel(name) for name in names}
+    groups = {name: NomenclatureGroupModel.create(name) for name in names}
 
     # Действия
     positions = NomenclatureModel.create_margherita_nomenclature(groups, units)

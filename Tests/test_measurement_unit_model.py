@@ -9,7 +9,7 @@ from Src.Models.measurement_unit_model import MeasurementUnitModel
 def test_measurement_unit_model__base_coefficient__no_base_unit_equals_coefficient():
     """У базовой единицы итоговый коэффициент равен её собственному."""
     # Подготовка
-    kg = MeasurementUnitModel("кг", 1)
+    kg = MeasurementUnitModel.create("кг", 1)
 
     # Действия
     coefficient = kg.base_coefficient
@@ -21,8 +21,8 @@ def test_measurement_unit_model__base_coefficient__no_base_unit_equals_coefficie
 def test_measurement_unit_model__base_coefficient__two_level_chain_is_computed():
     """Итоговый коэффициент корректно вычисляется на цепочке из 2 уровней."""
     # Подготовка
-    kg = MeasurementUnitModel("кг", 1)
-    g = MeasurementUnitModel("г", 0.001, kg)
+    kg = MeasurementUnitModel.create("кг", 1)
+    g = MeasurementUnitModel.create("г", 0.001, kg)
 
     # Действия
     coefficient = g.base_coefficient
@@ -34,9 +34,9 @@ def test_measurement_unit_model__base_coefficient__two_level_chain_is_computed()
 def test_measurement_unit_model__base_coefficient__three_level_chain_is_computed():
     """Итоговый коэффициент корректно вычисляется на цепочке из 3 уровней."""
     # Подготовка
-    kg = MeasurementUnitModel("кг", 1)
-    g = MeasurementUnitModel("г", 0.001, kg)
-    mg = MeasurementUnitModel("мг", 0.001, g)
+    kg = MeasurementUnitModel.create("кг", 1)
+    g = MeasurementUnitModel.create("г", 0.001, kg)
+    mg = MeasurementUnitModel.create("мг", 0.001, g)
 
     # Действия
     coefficient = mg.base_coefficient
@@ -45,27 +45,27 @@ def test_measurement_unit_model__base_coefficient__three_level_chain_is_computed
     assert coefficient == 0.001 * 0.001
 
 
-def test_measurement_unit_model__constructor__coefficient_not_1_no_base_unit_raises():
+def test_measurement_unit_model__create__coefficient_not_1_no_base_unit_raises():
     """Коэффициент, отличный от 1, без базовой единицы вызывает исключение."""
     # Подготовка
     coefficient = 0.001
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        MeasurementUnitModel("г", coefficient, None)
+        MeasurementUnitModel.create("г", coefficient, None)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
 
 
-def test_measurement_unit_model__constructor__non_unit_base_unit_raises():
+def test_measurement_unit_model__create__non_unit_base_unit_raises():
     """Базовая единица, не являющаяся MeasurementUnitModel, вызывает исключение."""
     # Подготовка
     base_unit = "кг"
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        MeasurementUnitModel("г", 0.001, base_unit)
+        MeasurementUnitModel.create("г", 0.001, base_unit)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
@@ -74,8 +74,8 @@ def test_measurement_unit_model__constructor__non_unit_base_unit_raises():
 def test_measurement_unit_model__base_unit_setter__reset_to_none_raises():
     """Сброс base_unit в None при coefficient != 1 бросает и не меняет значение."""
     # Подготовка
-    kg = MeasurementUnitModel("кг", 1)
-    g = MeasurementUnitModel("г", 0.001, kg)
+    kg = MeasurementUnitModel.create("кг", 1)
+    g = MeasurementUnitModel.create("г", 0.001, kg)
 
     # Действия
     with pytest.raises(ValidationException):
@@ -83,6 +83,35 @@ def test_measurement_unit_model__base_unit_setter__reset_to_none_raises():
 
     # Проверки
     assert g.base_unit is kg
+
+
+def test_measurement_unit_model__coefficient_setter__root_unit_invariant_kept():
+    """Изменение коэффициента корневой единицы отклоняется без изменения модели."""
+    # Подготовка
+    gram = MeasurementUnitModel.create_gram()
+
+    # Действия
+    with pytest.raises(ValidationException):
+        gram.coefficient = 2
+
+    # Проверки
+    assert gram.coefficient == 1
+    assert gram.base_unit is None
+
+
+def test_measurement_unit_model__properties_filled__validation_succeeds():
+    """Пустая модель заполняется через свойства и проходит итоговую проверку."""
+    # Подготовка
+    gram = MeasurementUnitModel()
+    gram.name = "грамм"
+    gram.coefficient = 1
+
+    # Действия
+    gram.validate()
+
+    # Проверки
+    assert gram.base_coefficient == 1
+    assert gram.base_unit is None
 
 
 def test_measurement_unit_model__create_gram__base_unit_without_base():

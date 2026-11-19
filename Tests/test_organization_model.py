@@ -14,11 +14,11 @@ def _build_organization(
     legal_form="ООО",
 ):
     """Строит организацию с валидными реквизитами, переопределяя переданные."""
-    return OrganizationModel(name, inn, bic, curr_account, legal_form)
+    return OrganizationModel.create(name, inn, bic, curr_account, legal_form)
 
 
-def test_organization_model__constructor__name_is_taken_from_argument():
-    """Имя организации берётся из аргумента конструктора, а не зашито в класс."""
+def test_organization_model__create__name_is_taken_from_argument():
+    """Имя организации берётся из аргумента фабричного метода, а не зашито в класс."""
     # Подготовка
     name = "Лютик"
 
@@ -29,7 +29,7 @@ def test_organization_model__constructor__name_is_taken_from_argument():
     assert organization.name == name
 
 
-def test_organization_model__constructor__invalid_name_raises():
+def test_organization_model__create__invalid_name_raises():
     """Пустое имя организации вызывает исключение валидации."""
     # Подготовка
     name = ""
@@ -45,9 +45,7 @@ def test_organization_model__constructor__invalid_name_raises():
 @pytest.mark.parametrize(
     ("field", "length"), [("inn", 10), ("bic", 9), ("curr_account", 20)]
 )
-def test_organization_model__constructor__exact_digits_length_is_accepted(
-    field, length
-):
+def test_organization_model__create__exact_digits_length_is_accepted(field, length):
     """ИНН, БИК и расчётный счёт допустимы при своей длине (10, 9, 20 цифр)."""
     # Подготовка
     value = "1" * length
@@ -63,7 +61,7 @@ def test_organization_model__constructor__exact_digits_length_is_accepted(
     ("field", "length"), [("inn", 10), ("bic", 9), ("curr_account", 20)]
 )
 @pytest.mark.parametrize("delta", [-1, 1])
-def test_organization_model__constructor__digits_length_off_by_one_raises(
+def test_organization_model__create__digits_length_off_by_one_raises(
     field, length, delta
 ):
     """ИНН, БИК и расчётный счёт на одну цифру короче или длиннее вызывают ошибку."""

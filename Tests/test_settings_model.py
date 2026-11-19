@@ -9,7 +9,7 @@ from Src.Models.settings_model import SettingsModel
 
 def _build_organization():
     """Строит валидную организацию."""
-    return OrganizationModel(
+    return OrganizationModel.create(
         "Ромашка", "7701234567", "044525225", "40702810000000000001", "ООО"
     )
 

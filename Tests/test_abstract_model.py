@@ -4,10 +4,46 @@ import pytest
 
 from Src.Core.abstract_model import AbstractModel
 from Src.Core.exception import ValidationException
+from Src.Logics.entity_type import EntityType
 
 
 class _AbstractModelStub(AbstractModel):
     """Заглушка-наследник для тестирования AbstractModel."""
+
+
+def test_abstract_model__clone__code_and_nested_links_preserved(units):
+    """Копия сохраняет код и вложенную ссылку, позволяя независимо менять поля."""
+    # Подготовка
+    original = units["килограмм"]
+
+    # Действия
+    cloned = original.clone()
+    cloned.name = "Копия единицы"
+
+    # Проверки
+    assert type(cloned) is type(original)
+    assert cloned is not original
+    assert cloned.id == original.id
+    assert cloned.base_unit is original.base_unit
+    assert cloned.coefficient == original.coefficient
+    assert original.name == "килограмм"
+    assert cloned.name == "Копия единицы"
+
+
+@pytest.mark.parametrize("model_type", [item.value for item in EntityType])
+def test_abstract_model__unfilled_domain_model__validation_error(model_type):
+    """Пустая доменная модель создаётся без аргументов и отклоняется при проверке."""
+    # Подготовка
+    model = model_type()
+    original_id = model.id
+
+    # Действия
+    with pytest.raises(ValidationException):
+        model.validate()
+
+    # Проверки
+    assert model.id == original_id
+    assert original_id
 
 
 def test_abstract_model__constructor__id_is_not_empty():

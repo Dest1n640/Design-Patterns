@@ -7,25 +7,23 @@ from Src.Models.dish_model import DishModel
 from Src.Models.technological_map_model import TechnologicalMapModel
 
 
-def test_technological_map_model__constructor__without_dishes_is_empty():
+def test_technological_map_model__create__without_dishes_is_empty():
     """Карта без переданных блюд создаётся пустой, вес равен нулю."""
     # Подготовка
     name = "Карта"
 
     # Действия
-    technological_map = TechnologicalMapModel(name)
+    technological_map = TechnologicalMapModel.create(name)
 
     # Проверки
     assert technological_map.dishes == []
 
 
-def test_technological_map_model__constructor__empty_maps_do_not_share_dishes(
-    groups, units
-):
+def test_technological_map_model__create__empty_maps_do_not_share_dishes(groups, units):
     """Пустые карты не делят один список блюд."""
     # Подготовка
-    first = TechnologicalMapModel("Первая")
-    second = TechnologicalMapModel("Вторая")
+    first = TechnologicalMapModel.create("Первая")
+    second = TechnologicalMapModel.create("Вторая")
     dough = DishModel.create_margherita_dishes(groups, units)[0]
 
     # Действия
@@ -36,14 +34,14 @@ def test_technological_map_model__constructor__empty_maps_do_not_share_dishes(
 
 
 @pytest.mark.parametrize("value", ["блюда", 5, [object()], [None]])
-def test_technological_map_model__constructor__invalid_dishes_raises(value):
+def test_technological_map_model__create__invalid_dishes_raises(value):
     """Не список или не блюда вызывают исключение валидации."""
     # Подготовка
     name = "Карта"
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        TechnologicalMapModel(name, value)
+        TechnologicalMapModel.create(name, value)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
@@ -64,7 +62,7 @@ def test_technological_map_model__dishes__returns_copy(groups, units):
 def test_technological_map_model__add_dish__dish_is_appended(groups, units):
     """Добавленное блюдо попадает в карту и возвращается в общем списке."""
     # Подготовка
-    technological_map = TechnologicalMapModel("Карта")
+    technological_map = TechnologicalMapModel.create("Карта")
     dough = DishModel.create_margherita_dishes(groups, units)[0]
 
     # Действия
@@ -79,7 +77,7 @@ def test_technological_map_model__add_dish__dish_is_appended(groups, units):
 def test_technological_map_model__add_dish__not_dish_raises(value):
     """Добавление не блюда вызывает исключение валидации."""
     # Подготовка
-    technological_map = TechnologicalMapModel("Карта")
+    technological_map = TechnologicalMapModel.create("Карта")
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:

@@ -14,13 +14,13 @@ def _build_ingredients(groups, units):
     ]
 
 
-def test_dish_model__constructor__fields_are_stored(groups, units):
-    """Конструктор сохраняет имя, состав и рецепт блюда."""
+def test_dish_model__create__fields_are_stored(groups, units):
+    """Фабричный метод сохраняет имя, состав и рецепт блюда."""
     # Подготовка
     ingredients = _build_ingredients(groups, units)
 
     # Действия
-    dish = DishModel("Тесто", ingredients, "Замесить.")
+    dish = DishModel.create("Тесто", ingredients, "Замесить.")
 
     # Проверки
     assert (dish.name, dish.ingredients, dish.recipe) == (
@@ -33,7 +33,7 @@ def test_dish_model__constructor__fields_are_stored(groups, units):
 def test_dish_model__ingredients__returns_copy(groups, units):
     """Изменение полученного списка не меняет состав блюда."""
     # Подготовка
-    dish = DishModel("Тесто", _build_ingredients(groups, units), "Замесить.")
+    dish = DishModel.create("Тесто", _build_ingredients(groups, units), "Замесить.")
 
     # Действия
     dish.ingredients.clear()
@@ -48,7 +48,7 @@ def test_dish_model__ingredients__source_list_change_does_not_affect_dish(
     """Изменение исходного списка после создания блюда не меняет состав блюда."""
     # Подготовка
     ingredients = _build_ingredients(groups, units)
-    dish = DishModel("Тесто", ingredients, "Замесить.")
+    dish = DishModel.create("Тесто", ingredients, "Замесить.")
 
     # Действия
     ingredients.clear()
@@ -58,28 +58,28 @@ def test_dish_model__ingredients__source_list_change_does_not_affect_dish(
 
 
 @pytest.mark.parametrize("value", [[], "состав", None, [object()], [None]])
-def test_dish_model__constructor__invalid_ingredients_raises(value):
+def test_dish_model__create__invalid_ingredients_raises(value):
     """Пустой состав, не список или не ингредиенты вызывают исключение валидации."""
     # Подготовка
     recipe = "Замесить."
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        DishModel("Тесто", value, recipe)
+        DishModel.create("Тесто", value, recipe)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)
 
 
 @pytest.mark.parametrize("value", ["", "   ", None, 5])
-def test_dish_model__constructor__invalid_recipe_raises(value, groups, units):
+def test_dish_model__create__invalid_recipe_raises(value, groups, units):
     """Пустой рецепт или не строка вызывают исключение валидации."""
     # Подготовка
     ingredients = _build_ingredients(groups, units)
 
     # Действия
     with pytest.raises(ValidationException) as exc_info:
-        DishModel("Тесто", ingredients, value)
+        DishModel.create("Тесто", ingredients, value)
 
     # Проверки
     assert isinstance(exc_info.value, ValidationException)

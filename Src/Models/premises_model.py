@@ -1,3 +1,5 @@
+from typing import Self
+
 from Src.Core.named_model import NamedModel
 from Src.Core.validation import Validation
 
@@ -5,11 +7,21 @@ from Src.Core.validation import Validation
 class PremisesModel(NamedModel):
     """Класс помещения, в котором расположен склад."""
 
-    def __init__(self, name: str, address: str, square: int | float):
-        """Конструктор помещения."""
-        super().__init__(name)
-        self.address = address
-        self.square = square
+    def __init__(self) -> None:
+        """Инициализирует помещение без заполненных обязательных полей."""
+        super().__init__()
+        self.__address = ""
+        self.__square: int | float | None = None
+
+    @classmethod
+    def create(cls, name: str, address: str, square: int | float) -> Self:
+        """Создаёт помещение с проверенными адресом и площадью."""
+        model = cls()
+        model.name = name
+        model.address = address
+        model.square = square
+        model.validate()
+        return model
 
     @property
     def address(self):
