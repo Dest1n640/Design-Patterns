@@ -155,6 +155,59 @@ def test_entity_api__all_model_types__crud_lifecycle(api, entity_payloads, entit
     assert missing_status == 404
 
 
+@pytest.mark.parametrize(
+    ("entity_type", "field", "operator", "value"),
+    [
+        ("nomenclature", "group.name", "LIKE", "группа"),
+        ("nomenclature_groups", "id", "EQUALS", "filter"),
+        ("measurement_units", "base_unit.name", "EQUALS", "грамм"),
+        ("technological_maps", "dishes.ingredients.name", "EQUALS", "Продукт"),
+    ],
+)
+def test_entity_api__filter_collection__matching_models_returned(
+    api, entity_payloads, entity_type, field, operator, value
+):
+    """POST выбирает DTO коллекции, а GET по коду filter доступен по тому же пути."""
+    # Подготовка
+    path = f"/entities/{entity_type}"
+    source = entity_payloads[entity_type]
+    payload = source | {"id": "filter"}
+    if entity_type == "measurement_units":
+        payload |= {"name": "килограмм", "coefficient": 1000, "base_unit": source}
+    created_status, created = api("POST", path, payload)
+    filters = {"filters": [{"field": field, "filter_type": operator, "value": value}]}
+
+    # Действия
+    status, result = api("POST", f"{path}/filter", filters)
+    read_status, stored = api("GET", f"{path}/filter")
+
+    # Проверки
+    assert created_status == 201
+    assert status == 200
+    assert result == [created]
+    assert read_status == 200
+    assert stored == created
+
+
+def test_entity_api__filter_field_for_another_model__validation_error(api):
+    """Вложенное поле проверяется DTO той коллекции, которая указана в маршруте."""
+    # Подготовка
+    payload = {
+        "filters": [
+            {"field": "base_unit.name", "filter_type": "EQUALS", "value": "грамм"}
+        ]
+    }
+
+    # Действия
+    status, response = api("POST", "/entities/nomenclature_groups/filter", payload)
+    unsupported_status, _ = api("POST", "/entities/warehouses/filter", {"filters": []})
+
+    # Проверки
+    assert status == 422
+    assert response["detail"][0]["loc"] == ["body", "filters", 0, "field"]
+    assert unsupported_status == 404
+
+
 @pytest.mark.parametrize("persistent", [False, True])
 def test_entity_api__incremental_crud__full_index_scan_unused(
     api, monkeypatch, tmp_path, persistent
