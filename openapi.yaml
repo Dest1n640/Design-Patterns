@@ -87,6 +87,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /entities/{entity_type}/filter:
+    post:
+      summary: Отфильтровать объекты выбранной коллекции
+      description: >-
+        Возвращает объекты, удовлетворяющие всем условиям. Пустой список filters
+        возвращает всю коллекцию. Поля name и id доступны для всех четырёх типов,
+        а вложенные поля зависят от коллекции. EQUALS учитывает регистр, LIKE
+        ищет подстроку без учёта регистра.
+      operationId: filter_entities_entities__entity_type__filter_post
+      parameters:
+      - name: entity_type
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [nomenclature, nomenclature_groups, measurement_units, technological_maps]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filters]
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    required: [field, filter_type, value]
+                    properties:
+                      field:
+                        type: string
+                      filter_type:
+                        type: string
+                        enum: [EQUALS, LIKE]
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: Список подходящих объектов, пустой при отсутствии совпадений.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Entity'
+        '404':
+          $ref: '#/components/responses/EntityNotFound'
+        '422':
+          $ref: '#/components/responses/InvalidEntity'
   /entities/{entity_type}/{entity_id}:
     patch:
       summary: Частично изменить сущность

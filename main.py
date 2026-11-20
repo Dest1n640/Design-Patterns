@@ -2,7 +2,9 @@ from urllib.parse import quote
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
+from pydantic import ValidationError
 from starlette.convertors import StringConvertor, register_url_convertor
 
 from Src.Core.exception import (
@@ -12,8 +14,13 @@ from Src.Core.exception import (
     ValidationException,
 )
 from Src.Core.report_type import ReportType
+from Src.Dtos.measurement_unit_filter_dto import MeasurementUnitFilterDto
+from Src.Dtos.nomenclature_filter_dto import NomenclatureFilterDto
+from Src.Dtos.nomenclature_group_filter_dto import NomenclatureGroupFilterDto
+from Src.Dtos.recipe_filter_dto import RecipeFilterDto
 from Src.Logics.entity_request_adapter import EntityRequestAdapter
 from Src.Logics.entity_service import EntityService
+from Src.Logics.filter_prototype import FilterPrototype
 from Src.Logics.report_factory import ReportFactory
 from Src.Logics.serialize_factory import SerializeFactory
 from Src.Logics.settings_manager import SettingsManager
@@ -32,6 +39,13 @@ WRITE_RESPONSES = {
     409: {"description": "Конфликт идентификатора, вложенных данных или связей."},
     422: {"description": "Некорректное тело запроса или поля модели."},
     503: {"description": "Не удалось сохранить изменения в хранилище."},
+}
+
+FILTER_DTOS = {
+    "nomenclature": NomenclatureFilterDto,
+    "nomenclature_groups": NomenclatureGroupFilterDto,
+    "measurement_units": MeasurementUnitFilterDto,
+    "technological_maps": RecipeFilterDto,
 }
 
 REPORT_COLLECTIONS = {
@@ -122,6 +136,30 @@ def create_entity(entity_type: str, data: dict) -> dict:
         )
         entity = EntityService(storage_manager).create(model)
         return SerializeFactory().convert(entity)
+
+
+@app.post(
+    "/entities/{entity_type}/filter",
+    summary="Отфильтровать объекты выбранной коллекции",
+    responses={404: {"description": "Фильтрация коллекции недоступна."}},
+)
+def filter_entities(entity_type: str, data: dict) -> list[dict]:
+    """Возвращает объекты коллекции, которые подходят под все условия запроса."""
+    dto_type = FILTER_DTOS.get(entity_type)
+    if dto_type is None:
+        raise NotFoundException(f"Фильтрация коллекции '{entity_type}' недоступна")
+    try:
+        filter_dto = dto_type.model_validate(data)
+    except ValidationError as ex:
+        errors = [
+            {**error, "loc": ("body", *error["loc"])}
+            for error in ex.errors(include_context=False, include_url=False)
+        ]
+        raise RequestValidationError(errors, body=data) from ex
+
+    with storage_manager:
+        prototype = FilterPrototype(storage_manager.get_entities(entity_type))
+        return SerializeFactory().convert(prototype.clone(filter_dto).data)
 
 
 @app.patch(
